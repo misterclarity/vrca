@@ -69,6 +69,7 @@
                   width: 2;
                   color: yellow;
                   font: mozillavr"
+            visible="false"
           ></a-entity>
 
           <a-entity
@@ -79,6 +80,7 @@
                   width: 2;
                   color: white;
                   font: mozillavr"
+            visible="false"
           ></a-entity>
 
           <a-entity
@@ -109,6 +111,26 @@
                     color: white;
                     font: mozillavr;
                     wrapCount: 35"
+            ></a-entity>
+          </a-entity>
+          
+          <a-entity
+            id="welcomeScreen"
+            position="0 0.5 -2"
+            rotation="0 0 0"
+            visible="true"
+          >
+            <a-entity
+              position="0 0.5 0"
+              text="value: Welcome to the Capoeira VR Trainer!\n\n
+                    Learn fundamental movements and kicks used in Capoeira.\n\n
+                    Focus on the model and practice along with the animation.\n\n
+                    Press the **B button** on your **right controller** to begin!;
+                    align: center;
+                    width: 2.5;
+                    color: yellow;
+                    font: mozillavr;
+                    wrapCount: 50"
             ></a-entity>
           </a-entity>
         </a-entity>
@@ -167,6 +189,7 @@
 
       // --- STATE ---
       let state = {
+        isGameStarted: false, // NEW STATE VARIABLE
         currentDefensiveIndex: DEFENSIVE_START_INDEX,
         currentOffensiveIndex: OFFENSIVE_START_INDEX,
         isRodaModeActive: false,
@@ -174,7 +197,6 @@
         timeLeft: DEFAULT_RODA_TIME,
         isFacingAway: false,
         isHelpVisible: false,
-        // Start with a default move/type
         currentMoveType: 'defensive' 
       };
 
@@ -186,6 +208,7 @@
       const timerText = document.getElementById("timerText");
       const leftHand = document.getElementById("leftHand");
       const rightHand = document.getElementById("rightHand");
+      const welcomeScreen = document.getElementById("welcomeScreen"); // NEW ELEMENT
 
       // --- A-FRAME COMPONENTS ---
 
@@ -204,12 +227,30 @@
       document.getElementById("modelContainer").setAttribute("follow-camera-y", "");
 
 
-      // --- UTILITY FUNCTIONS ---
+      // --- GAME FLOW FUNCTIONS ---
+
+      function startGame() {
+        if (state.isGameStarted) return;
+        
+        state.isGameStarted = true;
+        welcomeScreen.setAttribute('visible', false);
+        instructionText.setAttribute('visible', true);
+        moveTitleText.setAttribute('visible', true);
+        updateModel(state.currentMoveType); // Initialize UI text based on model
+        instructionText.setAttribute(
+            "text",
+            "value",
+            "Welcome to Capoeira Training!\nPress the joystick at any time for help."
+        );
+      }
 
       function toggleHelpScreen() {
+        if (!state.isGameStarted) return; // Ignore if game hasn't started
         state.isHelpVisible = !state.isHelpVisible;
         helpScreen.setAttribute("visible", state.isHelpVisible);
       }
+
+      // --- MODEL UPDATE FUNCTIONS (unchanged) ---
 
       function getRandomMove(moveType) {
         const moves = moveData[moveType];
@@ -223,18 +264,16 @@
 
         if (moveType === 'offensive') {
           currentIndex = state.currentOffensiveIndex;
-          // Cycle index
           state.currentOffensiveIndex = (currentIndex + 1) % moves.length;
         } else {
           currentIndex = state.currentDefensiveIndex;
-          // Cycle index
           state.currentDefensiveIndex = (currentIndex + 1) % moves.length;
         }
         return moves[currentIndex];
       }
 
       function updateModel(moveType, isRodaMode = false) {
-        state.currentMoveType = moveType; // Update the current type
+        state.currentMoveType = moveType;
         let move;
 
         if (isRodaMode) {
@@ -258,13 +297,15 @@
             : "Practice your offense. Attack!"
         );
 
-        // Apply rotation based on current state.isFacingAway
         const yRotation = state.isFacingAway ? FACING_AWAY_ROTATION : DEFAULT_MODEL_ROTATION;
         entity.setAttribute("rotation", `0 ${yRotation} 0`);
       }
       
-      // Set initial model and text
+      // Set initial model for display on the welcome screen
       updateModel(state.currentMoveType); 
+
+
+      // --- RODA MODE FUNCTIONS (unchanged) ---
 
       function updateTimer() {
         timerText.setAttribute("text", "value", `Next move in: ${state.timeLeft}s`);
@@ -292,13 +333,14 @@
         clearInterval(state.rodaInterval);
         state.rodaInterval = null;
         timerText.setAttribute("text", "value", "");
-        // Reset to the default sequential move (Ginga)
         state.currentDefensiveIndex = DEFENSIVE_START_INDEX; 
         state.currentOffensiveIndex = OFFENSIVE_START_INDEX;
         updateModel("defensive", false); 
       }
 
       function toggleRodaMode() {
+        if (!state.isGameStarted) return; 
+
         state.isRodaModeActive = !state.isRodaModeActive;
         timerText.setAttribute("visible", state.isRodaModeActive);
 
@@ -319,15 +361,20 @@
         }
       }
 
+      // --- INPUT HANDLERS (unchanged) ---
+
       function handleGripDown() {
+        if (!state.isGameStarted) return;
         entity.setAttribute("animation-mixer", "timeScale", SLOW_MOTION_SCALE);
       }
 
       function handleGripUp() {
+        if (!state.isGameStarted) return;
         entity.setAttribute("animation-mixer", "timeScale", NORMAL_TIME_SCALE);
       }
       
       function handleTriggerDown() {
+        if (!state.isGameStarted) return;
         state.isFacingAway = !state.isFacingAway;
         const yRotation = state.isFacingAway ? FACING_AWAY_ROTATION : DEFAULT_MODEL_ROTATION;
         entity.setAttribute("rotation", `0 ${yRotation} 0`);
@@ -347,23 +394,25 @@
           // Help Screen (Thumbstick Press)
           controller.addEventListener("thumbstickdown", toggleHelpScreen);
           
-          // Manual Move Controls
           if (controller.id === "leftHand") {
-              // Offensive Move (A Button on Left)
+              // Offensive Move (A Button)
               controller.addEventListener(
                 "abuttondown",
-                () => !state.isRodaModeActive && updateModel("offensive")
+                () => state.isGameStarted && !state.isRodaModeActive && updateModel("offensive")
               );
-              // Defensive Move (B Button on Left)
+              // Defensive Move (B Button)
               controller.addEventListener(
                 "bbuttondown",
-                () => !state.isRodaModeActive && updateModel("defensive")
+                () => state.isGameStarted && !state.isRodaModeActive && updateModel("defensive")
               );
-              // Roda Mode (X Button on Left)
+              // Roda Mode (X Button)
               controller.addEventListener("xbuttondown", toggleRodaMode);
           } else if (controller.id === "rightHand") {
-               // Roda Mode (A Button on Right, for symmetry with X button on left)
+               // Roda Mode (A Button)
                controller.addEventListener("abuttondown", toggleRodaMode);
+               
+               // NEW: Start Game (B Button on Right Hand)
+               controller.addEventListener("bbuttondown", startGame);
           }
       }
 
