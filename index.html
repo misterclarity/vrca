@@ -1,98 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" href="https://glitch.com/favicon.ico" />
-    <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
-    <script src="https://unpkg.com/aframe-environment-component@1.3.3/dist/aframe-environment-component.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.1.0/dist/aframe-extras.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.2.2/dist/aframe-physics-system.min.js"></script>
-    <style>
-      .a-dialog-text {
-        color: white;
-        font-size: 24px;
-      }
-    </style>
-  </head>
-  <body>
-    <a-scene vr-mode-ui="enabled: true" physics="driver: cannon; debug: true; gravity: -9.8;">
-      <a-assets>
-        <a-asset-item
-          id="ginga1"
-          src="https://cdn.glitch.global/4c7e4a3c-aef2-448c-a93b-e5c1023f03aa/Ginga1.glb?v=1700142874369"
-        ></a-asset-item>
-        <a-asset-item
-          id="macaco"
-          src="https://cdn.glitch.global/4c7e4a3c-aef2-448c-a93b-e5c1023f03aa/Macaco%20Side.glb?v=1698929380434"
-        ></a-asset-item>
-        <a-asset-item
-          id="troca"
-          src="https://cdn.glitch.global/4c7e4a3c-aef2-448c-a93b-e5c1023f03aa/Troca.glb?v=1700141950299"
-        ></a-asset-item>
-        <a-asset-item
-          id="martelo3"
-          src="https://cdn.glitch.global/4c7e4a3c-aef2-448c-a93b-e5c1023f03aa/Martelo3.glb?v=1700141192607"
-        ></a-asset-item>
-        <a-asset-item
-          id="ginga&compasso"
-          src="https://cdn.glitch.global/4c7e4a3c-aef2-448c-a93b-e5c1023f03aa/ginga%26compasso.glb?v=1698932909290"
-        ></a-asset-item>
-        <audio
-          id="audio"
-          src="https://cdn.glitch.global/4c7e4a3c-aef2-448c-a93b-e5c1023f03aa/Luna.ogg?v=1729800534197"
-        ></audio>
-      </a-assets>
 
-      <a-entity id="cameraRig" position="0 1.3 0">
-        <a-entity
-          id="camera"
-          camera
-          look-controls
-          wasd-controls="enabled:true;"
-        >
-          <a-entity
-            id="timerText"
-            position="0 1.4 -2"
-            text="value: ; 
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="https://glitch.com/favicon.ico" />
+  <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+  <script src="https://unpkg.com/aframe-environment-component@1.3.3/dist/aframe-environment-component.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.1.0/dist/aframe-extras.min.js"></script>
+  <script
+    src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.2.2/dist/aframe-physics-system.min.js"></script>
+  <style>
+    .a-dialog-text {
+      color: white;
+      font-size: 24px;
+    }
+  </style>
+</head>
+
+<body>
+  <a-scene vr-mode-ui="enabled: true" physics="driver: cannon; debug: true; gravity: -9.8;">
+    <a-assets>
+      <a-asset-item id="ginga1"
+        src="https://cdn.glitch.global/4c7e4a3c-aef2-448c-a93b-e5c1023f03aa/Ginga1.glb?v=1700142874369"></a-asset-item>
+      <a-asset-item id="macaco"
+        src="https://cdn.glitch.global/4c7e4a3c-aef2-448c-a93b-e5c1023f03aa/Macaco%20Side.glb?v=1698929380434"></a-asset-item>
+      <a-asset-item id="troca"
+        src="https://cdn.glitch.global/4c7e4a3c-aef2-448c-a93b-e5c1023f03aa/Troca.glb?v=1700141950299"></a-asset-item>
+      <a-asset-item id="martelo3"
+        src="https://cdn.glitch.global/4c7e4a3c-aef2-448c-a93b-e5c1023f03aa/Martelo3.glb?v=1700141192607"></a-asset-item>
+      <a-asset-item id="ginga&compasso"
+        src="https://cdn.glitch.global/4c7e4a3c-aef2-448c-a93b-e5c1023f03aa/ginga%26compasso.glb?v=1698932909290"></a-asset-item>
+      <audio id="audio"
+        src="https://cdn.glitch.global/4c7e4a3c-aef2-448c-a93b-e5c1023f03aa/Luna.ogg?v=1729800534197"></audio>
+    </a-assets>
+
+    <a-entity id="cameraRig" position="0 0 0">
+      <a-entity id="camera" camera look-controls wasd-controls="enabled:true;">
+        <a-entity id="timerText" position="0 1.4 -2" text="value: ; 
                   align: center;
                   width: 2;
                   color: red;
-                  font: mozillavr"
-            visible="false"
-          ></a-entity>
+                  font: mozillavr" visible="false"></a-entity>
 
-          <a-entity
-            id="moveTitleText"
-            position="0 1.2 -2"
-            text="value: Current Move: Ginga; 
+        <a-entity id="moveTitleText" position="0 1.2 -2" text="value: Current Move: Ginga; 
                   align: center;
                   width: 2;
                   color: yellow;
-                  font: mozillavr"
-            visible="false"
-          ></a-entity>
+                  font: mozillavr" visible="false"></a-entity>
 
-          <a-entity
-            id="instructionText"
-            position="0 0.7 -2"
-            text="value: Welcome to Capoeira Training!\nPress the joystick at any time for help.; 
+        <a-entity id="instructionText" position="0 0.7 -2" text="value: Welcome to Capoeira Training!\nPress the joystick at any time for help.; 
                   align: center;
                   width: 2;
                   color: white;
-                  font: mozillavr"
-            visible="false"
-          ></a-entity>
+                  font: mozillavr" visible="false"></a-entity>
 
-          <a-entity
-            id="helpScreen"
-            position="0 0.3 -2"
-            rotation="0 0 0"
-            visible="false"
-          >
-            <a-entity
-              position="0 0 0"
-              text="value: CONTROLS (try them while reading)\n\n
+        <a-entity id="helpScreen" position="0 0.3 -2" rotation="0 0 0" visible="false">
+          <a-entity position="0 0 0" text="value: CONTROLS (try them while reading)\n\n
                     A button (Left): Next offensive move\n
                     B button (Left): Next defensive move\n
                     X button (Left): Toggle Roda Mode on/off\n
@@ -111,19 +75,11 @@
                     width: 1.5;
                     color: white;
                     font: mozillavr;
-                    wrapCount: 35"
-            ></a-entity>
-          </a-entity>
-          
-          <a-entity
-            id="welcomeScreen"
-            position="0 0.5 -2"
-            rotation="0 0 0"
-            visible="true"
-          >
-            <a-entity
-              position="0 0.5 0"
-              text="value: Welcome to the Capoeira VR Trainer!\n\n
+                    wrapCount: 35"></a-entity>
+        </a-entity>
+
+        <a-entity id="welcomeScreen" position="0 0.5 -2" rotation="0 0 0" visible="true">
+          <a-entity position="0 0.5 0" text="value: Welcome to the Capoeira VR Trainer!\n\n
                     Learn fundamental movements and kicks used in Capoeira.\n\n
                     Focus on the model and practice along with the animation.\n\n
                     Press the **B button** on your **right controller** to begin!;
@@ -131,354 +87,324 @@
                     width: 2.5;
                     color: yellow;
                     font: mozillavr;
-                    wrapCount: 50"
-            ></a-entity>
-          </a-entity>
+                    wrapCount: 50"></a-entity>
         </a-entity>
       </a-entity>
+    </a-entity>
 
-      <a-entity id="modelContainer">
-        <a-gltf-model
-          id="model"
-          src="#ginga1"
-          scale="0.01 0.01 0.01"
-          position="0 0 -2"
-          rotation="0 0 0"
-          animation-mixer="timeScale: 1"
-          physics-collider="ignoreSleep: false"
-        >
-          <!-- Colliders attached to bones -->
-          <a-entity 
-            id="leftFootCollider" 
-            bone-proxy="target: #model; boneName: mixamorigLeftFoot" 
-            static-body="shape: sphere; sphereRadius: 0.15"
-          ></a-entity>
-          <a-entity 
-            id="rightFootCollider" 
-            bone-proxy="target: #model; boneName: mixamorigRightFoot" 
-            static-body="shape: sphere; sphereRadius: 0.15"
-          ></a-entity>
-        </a-gltf-model>
-      </a-entity>
+    <a-entity id="modelContainer">
+      <a-gltf-model id="model" src="#ginga1" scale="0.01 0.01 0.01" position="0 0 -2" rotation="0 0 0"
+        animation-mixer="timeScale: 1" physics-collider="ignoreSleep: false">
+        <!-- Colliders attached to bones -->
+        <a-entity id="leftFootCollider" bone-proxy="target: #model; boneName: mixamorigLeftFoot"
+          static-body="shape: sphere; sphereRadius: 0.15"></a-entity>
+        <a-entity id="rightFootCollider" bone-proxy="target: #model; boneName: mixamorigRightFoot"
+          static-body="shape: sphere; sphereRadius: 0.15"></a-entity>
+      </a-gltf-model>
+    </a-entity>
 
-      <!-- Test Object to check collisions -->
-      <a-sphere 
-        id="testBall" 
-        position="0.5 1 -1.5" 
-        radius="0.1" 
-        color="orange" 
-        dynamic-body="mass: 1"
-      ></a-sphere>
+    <!-- Test Object to check collisions -->
+    <a-sphere id="testBall" position="0.5 1 -1.5" radius="0.1" color="orange" dynamic-body="mass: 1"></a-sphere>
 
-      <a-entity
-        id="leftHand"
-        position="0 1.6 0"
-        oculus-touch-controls="hand: left"
-      ></a-entity>
-      <a-entity
-        id="rightHand"
-        position="0 1.6 0"
-        oculus-touch-controls="hand: right"
-      ></a-entity>
+    <a-entity id="leftHand" position="0 1.6 0" oculus-touch-controls="hand: left"></a-entity>
+    <a-entity id="rightHand" position="0 1.6 0" oculus-touch-controls="hand: right"></a-entity>
 
-      <a-entity
-        sound="src: #audio; autoplay: true; loop: true"
-        environment="preset: forest"
-      ></a-entity>
-    </a-scene>
+    <a-entity sound="src: #audio; autoplay: true; loop: true" environment="preset: forest"></a-entity>
+  </a-scene>
 
-    <script>
-      // --- CONSTANTS ---
-      const DEFAULT_RODA_TIME = 10;
-      const SLOW_MOTION_SCALE = 0.4;
-      const NORMAL_TIME_SCALE = 1;
-      const DEFENSIVE_START_INDEX = 0;
-      const OFFENSIVE_START_INDEX = 0;
-      const DEFAULT_MODEL_ROTATION = 0;
-      const FACING_AWAY_ROTATION = 180;
+  <script>
+    // --- CONSTANTS ---
+    const DEFAULT_RODA_TIME = 10;
+    const SLOW_MOTION_SCALE = 0.4;
+    const NORMAL_TIME_SCALE = 1;
+    const DEFENSIVE_START_INDEX = 0;
+    const OFFENSIVE_START_INDEX = 0;
+    const DEFAULT_MODEL_ROTATION = 0;
+    const FACING_AWAY_ROTATION = 180;
 
-      const moveData = {
-        defensive: [
-          { id: "#ginga1", title: "Ginga" },
-          { id: "#macaco", title: "Macaco (Monkey Move)" },
-          { id: "#troca", title: "Troca (Exchange)" },
-        ],
-        offensive: [
-          { id: "#martelo3", title: "Martelo (Hammer Kick)" },
-          { id: "#ginga&compasso", title: "Compasso (Compass Kick)" },
-        ],
-      };
+    const moveData = {
+      defensive: [
+        { id: "#ginga1", title: "Ginga" },
+        { id: "#macaco", title: "Macaco (Monkey Move)" },
+        { id: "#troca", title: "Troca (Exchange)" },
+      ],
+      offensive: [
+        { id: "#martelo3", title: "Martelo (Hammer Kick)" },
+        { id: "#ginga&compasso", title: "Compasso (Compass Kick)" },
+      ],
+    };
 
-      // --- STATE ---
-      let state = {
-        isGameStarted: false, // NEW STATE VARIABLE
-        currentDefensiveIndex: DEFENSIVE_START_INDEX,
-        currentOffensiveIndex: OFFENSIVE_START_INDEX,
-        isRodaModeActive: false,
-        rodaInterval: null,
-        timeLeft: DEFAULT_RODA_TIME,
-        isFacingAway: false,
-        isHelpVisible: false,
-        currentMoveType: 'defensive' 
-      };
+    // --- STATE ---
+    let state = {
+      isGameStarted: false, // NEW STATE VARIABLE
+      currentDefensiveIndex: DEFENSIVE_START_INDEX,
+      currentOffensiveIndex: OFFENSIVE_START_INDEX,
+      isRodaModeActive: false,
+      rodaInterval: null,
+      timeLeft: DEFAULT_RODA_TIME,
+      isFacingAway: false,
+      isHelpVisible: false,
+      currentMoveType: 'defensive'
+    };
 
-      // --- DOM ELEMENTS ---
-      const entity = document.getElementById("model");
-      const instructionText = document.getElementById("instructionText");
-      const helpScreen = document.getElementById("helpScreen");
-      const moveTitleText = document.getElementById("moveTitleText");
-      const timerText = document.getElementById("timerText");
-      const leftHand = document.getElementById("leftHand");
-      const rightHand = document.getElementById("rightHand");
-      const welcomeScreen = document.getElementById("welcomeScreen"); // NEW ELEMENT
+    // --- DOM ELEMENTS ---
+    const entity = document.getElementById("model");
+    const instructionText = document.getElementById("instructionText");
+    const helpScreen = document.getElementById("helpScreen");
+    const moveTitleText = document.getElementById("moveTitleText");
+    const timerText = document.getElementById("timerText");
+    const leftHand = document.getElementById("leftHand");
+    const rightHand = document.getElementById("rightHand");
+    const welcomeScreen = document.getElementById("welcomeScreen"); // NEW ELEMENT
 
-      // --- A-FRAME COMPONENTS ---
+    // --- A-FRAME COMPONENTS ---
 
-      // Custom component for Y-axis rotation following
-      AFRAME.registerComponent("follow-camera-y", {
-        tick: function () {
-          // Use the 'cameraRig' rotation to avoid visual jitter from 'look-controls'
-          const cameraRigRotation = document
-            .getElementById("cameraRig")
-            .getAttribute("rotation");
-          this.el.setAttribute("rotation", { x: 0, y: cameraRigRotation.y, z: 0 });
-        },
-      });
+    // Custom component for Y-axis rotation following
+    AFRAME.registerComponent("follow-camera-y", {
+      tick: function () {
+        // Use the 'cameraRig' rotation to avoid visual jitter from 'look-controls'
+        const cameraRigRotation = document
+          .getElementById("cameraRig")
+          .getAttribute("rotation");
+        this.el.setAttribute("rotation", { x: 0, y: cameraRigRotation.y, z: 0 });
+      },
+    });
 
-      // Add the follow-camera-y component to the model container
-      document.getElementById("modelContainer").setAttribute("follow-camera-y", "");
+    // Add the follow-camera-y component to the model container
+    document.getElementById("modelContainer").setAttribute("follow-camera-y", "");
 
-      // Custom component to sync physics body with an animated bone
-      AFRAME.registerComponent("bone-proxy", {
-        schema: {
-          target: { type: "selector" },
-          boneName: { type: "string" },
-        },
-        init: function () {
-          this.bone = null;
-          this.targetMesh = null;
-          
-          this.data.target.addEventListener('model-loaded', () => {
-            const mesh = this.data.target.getObject3D('mesh');
-            if (mesh) {
-              mesh.traverse((node) => {
-                if (node.isBone && node.name === this.data.boneName) {
-                  this.bone = node;
-                }
-              });
-            }
-          });
-        },
-        tick: function () {
-          if (!this.bone) return;
+    // Custom component to sync physics body with an animated bone
+    AFRAME.registerComponent("bone-proxy", {
+      schema: {
+        target: { type: "selector" },
+        boneName: { type: "string" },
+      },
+      init: function () {
+        this.bone = null;
+        this.targetMesh = null;
 
-          // Get bone's world position
-          const worldPos = new THREE.Vector3();
-          this.bone.getWorldPosition(worldPos);
-          
-          // Set this entity's position to match the bone
-          this.el.object3D.position.copy(worldPos);
-          
-          // If the physics body exists, sync it
-          if (this.el.body) {
-            this.el.body.position.copy(worldPos);
+        this.data.target.addEventListener('model-loaded', () => {
+          const mesh = this.data.target.getObject3D('mesh');
+          if (mesh) {
+            mesh.traverse((node) => {
+              if (node.isBone && node.name === this.data.boneName) {
+                this.bone = node;
+              }
+            });
           }
-        },
-      });
+        });
+      },
+      tick: function () {
+        if (!this.bone) return;
 
+        // Get bone's world position
+        const worldPos = new THREE.Vector3();
+        this.bone.getWorldPosition(worldPos);
 
-      // --- GAME FLOW FUNCTIONS ---
+        // Set this entity's position to match the bone
+        this.el.object3D.position.copy(worldPos);
 
-      function startGame() {
-        if (state.isGameStarted) return;
-        
-        state.isGameStarted = true;
-        welcomeScreen.setAttribute('visible', false);
-        instructionText.setAttribute('visible', true);
-        moveTitleText.setAttribute('visible', true);
-        updateModel(state.currentMoveType); // Initialize UI text based on model
-        instructionText.setAttribute(
-            "text",
-            "value",
-            "Welcome to Capoeira Training!\nPress the joystick at any time for help."
-        );
-      }
-
-      function toggleHelpScreen() {
-        if (!state.isGameStarted) return; // Ignore if game hasn't started
-        state.isHelpVisible = !state.isHelpVisible;
-        helpScreen.setAttribute("visible", state.isHelpVisible);
-      }
-
-      // --- MODEL UPDATE FUNCTIONS (unchanged) ---
-
-      function getRandomMove(moveType) {
-        const moves = moveData[moveType];
-        const randomIndex = Math.floor(Math.random() * moves.length);
-        return moves[randomIndex];
-      }
-
-      function getNextSequentialMove(moveType) {
-        const moves = moveData[moveType];
-        let currentIndex;
-
-        if (moveType === 'offensive') {
-          currentIndex = state.currentOffensiveIndex;
-          state.currentOffensiveIndex = (currentIndex + 1) % moves.length;
-        } else {
-          currentIndex = state.currentDefensiveIndex;
-          state.currentDefensiveIndex = (currentIndex + 1) % moves.length;
+        // If the physics body exists, sync it
+        if (this.el.body) {
+          this.el.body.position.copy(worldPos);
         }
-        return moves[currentIndex];
+      },
+    });
+
+
+    // --- GAME FLOW FUNCTIONS ---
+
+    function startGame() {
+      if (state.isGameStarted) return;
+
+      state.isGameStarted = true;
+      welcomeScreen.setAttribute('visible', false);
+      instructionText.setAttribute('visible', true);
+      moveTitleText.setAttribute('visible', true);
+      updateModel(state.currentMoveType); // Initialize UI text based on model
+      instructionText.setAttribute(
+        "text",
+        "value",
+        "Welcome to Capoeira Training!\nPress the joystick at any time for help."
+      );
+    }
+
+    function toggleHelpScreen() {
+      if (!state.isGameStarted) return; // Ignore if game hasn't started
+      state.isHelpVisible = !state.isHelpVisible;
+      helpScreen.setAttribute("visible", state.isHelpVisible);
+    }
+
+    // --- MODEL UPDATE FUNCTIONS (unchanged) ---
+
+    function getRandomMove(moveType) {
+      const moves = moveData[moveType];
+      const randomIndex = Math.floor(Math.random() * moves.length);
+      return moves[randomIndex];
+    }
+
+    function getNextSequentialMove(moveType) {
+      const moves = moveData[moveType];
+      let currentIndex;
+
+      if (moveType === 'offensive') {
+        currentIndex = state.currentOffensiveIndex;
+        state.currentOffensiveIndex = (currentIndex + 1) % moves.length;
+      } else {
+        currentIndex = state.currentDefensiveIndex;
+        state.currentDefensiveIndex = (currentIndex + 1) % moves.length;
+      }
+      return moves[currentIndex];
+    }
+
+    function updateModel(moveType, isRodaMode = false) {
+      state.currentMoveType = moveType;
+      let move;
+
+      if (isRodaMode) {
+        move = getRandomMove(moveType);
+      } else {
+        move = getNextSequentialMove(moveType);
       }
 
-      function updateModel(moveType, isRodaMode = false) {
-        state.currentMoveType = moveType;
-        let move;
+      entity.setAttribute("src", move.id);
+      moveTitleText.setAttribute(
+        "text",
+        "value",
+        `Current Move: ${move.title}`
+      );
 
-        if (isRodaMode) {
-          move = getRandomMove(moveType);
-        } else {
-          move = getNextSequentialMove(moveType);
-        }
+      instructionText.setAttribute(
+        "text",
+        "value",
+        moveType === "offensive"
+          ? "Practice your defense. Don't get hit!"
+          : "Practice your offense. Attack!"
+      );
 
-        entity.setAttribute("src", move.id);
-        moveTitleText.setAttribute(
-          "text",
-          "value",
-          `Current Move: ${move.title}`
-        );
+      const yRotation = state.isFacingAway ? FACING_AWAY_ROTATION : DEFAULT_MODEL_ROTATION;
+      entity.setAttribute("rotation", `0 ${yRotation} 0`);
+    }
 
-        instructionText.setAttribute(
-          "text",
-          "value",
-          moveType === "offensive"
-            ? "Practice your defense. Don't get hit!"
-            : "Practice your offense. Attack!"
-        );
-
-        const yRotation = state.isFacingAway ? FACING_AWAY_ROTATION : DEFAULT_MODEL_ROTATION;
-        entity.setAttribute("rotation", `0 ${yRotation} 0`);
-      }
-      
-      // Set initial model for display on the welcome screen
-      updateModel(state.currentMoveType); 
+    // Set initial model for display on the welcome screen
+    updateModel(state.currentMoveType);
 
 
-      // --- RODA MODE FUNCTIONS (unchanged) ---
+    // --- RODA MODE FUNCTIONS (unchanged) ---
 
-      function updateTimer() {
-        timerText.setAttribute("text", "value", `Next move in: ${state.timeLeft}s`);
-      }
+    function updateTimer() {
+      timerText.setAttribute("text", "value", `Next move in: ${state.timeLeft}s`);
+    }
 
-      function startRodaSequence() {
-        let isOffensive = Math.random() < 0.5;
-        state.timeLeft = DEFAULT_RODA_TIME;
+    function startRodaSequence() {
+      let isOffensive = Math.random() < 0.5;
+      state.timeLeft = DEFAULT_RODA_TIME;
+      updateTimer();
+      updateModel(isOffensive ? "offensive" : "defensive", true);
+
+      state.rodaInterval = setInterval(() => {
+        state.timeLeft--;
         updateTimer();
-        updateModel(isOffensive ? "offensive" : "defensive", true);
 
-        state.rodaInterval = setInterval(() => {
-          state.timeLeft--;
-          updateTimer();
-
-          if (state.timeLeft <= 0) {
-            isOffensive = !isOffensive;
-            state.timeLeft = DEFAULT_RODA_TIME;
-            updateModel(isOffensive ? "offensive" : "defensive", true);
-          }
-        }, 1000);
-      }
-
-      function stopRodaSequence() {
-        clearInterval(state.rodaInterval);
-        state.rodaInterval = null;
-        timerText.setAttribute("text", "value", "");
-        state.currentDefensiveIndex = DEFENSIVE_START_INDEX; 
-        state.currentOffensiveIndex = OFFENSIVE_START_INDEX;
-        updateModel("defensive", false); 
-      }
-
-      function toggleRodaMode() {
-        if (!state.isGameStarted) return; 
-
-        state.isRodaModeActive = !state.isRodaModeActive;
-        timerText.setAttribute("visible", state.isRodaModeActive);
-
-        if (state.isRodaModeActive) {
-          instructionText.setAttribute(
-            "text",
-            "value",
-            "Roda Mode Active - Follow the sequence!"
-          );
-          startRodaSequence();
-        } else {
-          instructionText.setAttribute(
-            "text",
-            "value",
-            "Roda Mode Deactivated - Manual control restored"
-          );
-          stopRodaSequence();
+        if (state.timeLeft <= 0) {
+          isOffensive = !isOffensive;
+          state.timeLeft = DEFAULT_RODA_TIME;
+          updateModel(isOffensive ? "offensive" : "defensive", true);
         }
+      }, 1000);
+    }
+
+    function stopRodaSequence() {
+      clearInterval(state.rodaInterval);
+      state.rodaInterval = null;
+      timerText.setAttribute("text", "value", "");
+      state.currentDefensiveIndex = DEFENSIVE_START_INDEX;
+      state.currentOffensiveIndex = OFFENSIVE_START_INDEX;
+      updateModel("defensive", false);
+    }
+
+    function toggleRodaMode() {
+      if (!state.isGameStarted) return;
+
+      state.isRodaModeActive = !state.isRodaModeActive;
+      timerText.setAttribute("visible", state.isRodaModeActive);
+
+      if (state.isRodaModeActive) {
+        instructionText.setAttribute(
+          "text",
+          "value",
+          "Roda Mode Active - Follow the sequence!"
+        );
+        startRodaSequence();
+      } else {
+        instructionText.setAttribute(
+          "text",
+          "value",
+          "Roda Mode Deactivated - Manual control restored"
+        );
+        stopRodaSequence();
       }
+    }
 
-      // --- INPUT HANDLERS (unchanged) ---
+    // --- INPUT HANDLERS (unchanged) ---
 
-      function handleGripDown() {
-        if (!state.isGameStarted) return;
-        entity.setAttribute("animation-mixer", "timeScale", SLOW_MOTION_SCALE);
+    function handleGripDown() {
+      if (!state.isGameStarted) return;
+      entity.setAttribute("animation-mixer", "timeScale", SLOW_MOTION_SCALE);
+    }
+
+    function handleGripUp() {
+      if (!state.isGameStarted) return;
+      entity.setAttribute("animation-mixer", "timeScale", NORMAL_TIME_SCALE);
+    }
+
+    function handleTriggerDown() {
+      if (!state.isGameStarted) return;
+      state.isFacingAway = !state.isFacingAway;
+      const yRotation = state.isFacingAway ? FACING_AWAY_ROTATION : DEFAULT_MODEL_ROTATION;
+      entity.setAttribute("rotation", `0 ${yRotation} 0`);
+    }
+
+    // --- EVENT LISTENERS ---
+
+    // Function to attach common events to a controller
+    function attachControllerEvents(controller) {
+      // Slow Motion (Grip)
+      controller.addEventListener("gripdown", handleGripDown);
+      controller.addEventListener("gripup", handleGripUp);
+
+      // Rotate Model (Trigger)
+      controller.addEventListener("triggerdown", handleTriggerDown);
+
+      // Help Screen (Thumbstick Press)
+      controller.addEventListener("thumbstickdown", toggleHelpScreen);
+
+      if (controller.id === "leftHand") {
+        // Offensive Move (A Button)
+        controller.addEventListener(
+          "abuttondown",
+          () => state.isGameStarted && !state.isRodaModeActive && updateModel("offensive")
+        );
+        // Defensive Move (B Button)
+        controller.addEventListener(
+          "bbuttondown",
+          () => state.isGameStarted && !state.isRodaModeActive && updateModel("defensive")
+        );
+        // Roda Mode (X Button)
+        controller.addEventListener("xbuttondown", toggleRodaMode);
+      } else if (controller.id === "rightHand") {
+        // Roda Mode (A Button)
+        controller.addEventListener("abuttondown", toggleRodaMode);
+
+        // NEW: Start Game (B Button on Right Hand)
+        controller.addEventListener("bbuttondown", startGame);
       }
+    }
 
-      function handleGripUp() {
-        if (!state.isGameStarted) return;
-        entity.setAttribute("animation-mixer", "timeScale", NORMAL_TIME_SCALE);
-      }
-      
-      function handleTriggerDown() {
-        if (!state.isGameStarted) return;
-        state.isFacingAway = !state.isFacingAway;
-        const yRotation = state.isFacingAway ? FACING_AWAY_ROTATION : DEFAULT_MODEL_ROTATION;
-        entity.setAttribute("rotation", `0 ${yRotation} 0`);
-      }
-      
-      // --- EVENT LISTENERS ---
+    attachControllerEvents(leftHand);
+    attachControllerEvents(rightHand);
 
-      // Function to attach common events to a controller
-      function attachControllerEvents(controller) {
-          // Slow Motion (Grip)
-          controller.addEventListener("gripdown", handleGripDown);
-          controller.addEventListener("gripup", handleGripUp);
+  </script>
+</body>
 
-          // Rotate Model (Trigger)
-          controller.addEventListener("triggerdown", handleTriggerDown);
-
-          // Help Screen (Thumbstick Press)
-          controller.addEventListener("thumbstickdown", toggleHelpScreen);
-          
-          if (controller.id === "leftHand") {
-              // Offensive Move (A Button)
-              controller.addEventListener(
-                "abuttondown",
-                () => state.isGameStarted && !state.isRodaModeActive && updateModel("offensive")
-              );
-              // Defensive Move (B Button)
-              controller.addEventListener(
-                "bbuttondown",
-                () => state.isGameStarted && !state.isRodaModeActive && updateModel("defensive")
-              );
-              // Roda Mode (X Button)
-              controller.addEventListener("xbuttondown", toggleRodaMode);
-          } else if (controller.id === "rightHand") {
-               // Roda Mode (A Button)
-               controller.addEventListener("abuttondown", toggleRodaMode);
-               
-               // NEW: Start Game (B Button on Right Hand)
-               controller.addEventListener("bbuttondown", startGame);
-          }
-      }
-
-      attachControllerEvents(leftHand);
-      attachControllerEvents(rightHand);
-
-    </script>
-  </body>
 </html>
