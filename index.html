@@ -7,6 +7,7 @@
     <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
     <script src="https://unpkg.com/aframe-environment-component@1.3.3/dist/aframe-environment-component.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.1.0/dist/aframe-extras.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.2.2/dist/aframe-physics-system.min.js"></script>
     <style>
       .a-dialog-text {
         color: white;
@@ -15,7 +16,7 @@
     </style>
   </head>
   <body>
-    <a-scene vr-mode-ui="enabled: true">
+    <a-scene vr-mode-ui="enabled: true" physics="driver: cannon; debug: true; gravity: -9.8;">
       <a-assets>
         <a-asset-item
           id="ginga1"
@@ -145,8 +146,29 @@
           rotation="0 0 0"
           animation-mixer="timeScale: 1"
           physics-collider="ignoreSleep: false"
-        ></a-gltf-model>
+        >
+          <!-- Colliders attached to bones -->
+          <a-entity 
+            id="leftFootCollider" 
+            bone-proxy="target: #model; boneName: mixamorigLeftFoot" 
+            static-body="shape: sphere; sphereRadius: 0.15"
+          ></a-entity>
+          <a-entity 
+            id="rightFootCollider" 
+            bone-proxy="target: #model; boneName: mixamorigRightFoot" 
+            static-body="shape: sphere; sphereRadius: 0.15"
+          ></a-entity>
+        </a-gltf-model>
       </a-entity>
+
+      <!-- Test Object to check collisions -->
+      <a-sphere 
+        id="testBall" 
+        position="0.5 1 -1.5" 
+        radius="0.1" 
+        color="orange" 
+        dynamic-body="mass: 1"
+      ></a-sphere>
 
       <a-entity
         id="leftHand"
@@ -225,6 +247,44 @@
 
       // Add the follow-camera-y component to the model container
       document.getElementById("modelContainer").setAttribute("follow-camera-y", "");
+
+      // Custom component to sync physics body with an animated bone
+      AFRAME.registerComponent("bone-proxy", {
+        schema: {
+          target: { type: "selector" },
+          boneName: { type: "string" },
+        },
+        init: function () {
+          this.bone = null;
+          this.targetMesh = null;
+          
+          this.data.target.addEventListener('model-loaded', () => {
+            const mesh = this.data.target.getObject3D('mesh');
+            if (mesh) {
+              mesh.traverse((node) => {
+                if (node.isBone && node.name === this.data.boneName) {
+                  this.bone = node;
+                }
+              });
+            }
+          });
+        },
+        tick: function () {
+          if (!this.bone) return;
+
+          // Get bone's world position
+          const worldPos = new THREE.Vector3();
+          this.bone.getWorldPosition(worldPos);
+          
+          // Set this entity's position to match the bone
+          this.el.object3D.position.copy(worldPos);
+          
+          // If the physics body exists, sync it
+          if (this.el.body) {
+            this.el.body.position.copy(worldPos);
+          }
+        },
+      });
 
 
       // --- GAME FLOW FUNCTIONS ---
