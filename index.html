@@ -216,88 +216,84 @@
         this.el.addEventListener('model-loaded', () => {
           const mesh = this.el.getObject3D('mesh');
           if (mesh) {
-            // Find all specified bones
             this.data.bones.forEach(boneName => {
               mesh.traverse((node) => {
                 if (node.isBone && node.name === boneName) {
                   this.bones.push(node);
 
-                  // Create a sphere entity for collision
-                  const colliderEl = document.createElement('a-sphere');
-                  colliderEl.setAttribute('radius', this.data.radius);
-                  colliderEl.setAttribute('color', 'red');
-                  colliderEl.setAttribute('opacity', 0.5);
-                  colliderEl.setAttribute('visible', true); // Visible for debugging
-                  colliderEl.setAttribute('class', `collider-${boneName}`);
-                  colliderEl.setAttribute('dynamic-body', {
-                    mass: 0.5,
-                    linearDamping: 0.95,
-                    angularDamping: 0.95
+                  const colliderEl = document.createElement('a-entity'); // Use entity, not sphere primitive
+
+                  // Setup for C-Frame Physics (Cannon.js)
+                  // type: kinematic = moves by code/animation, affects dynamic bodies
+                  // shape: sphere = explicit shape avoids mesh parsing
+                  colliderEl.setAttribute('body', {
+                    type: 'kinematic',
+                    shape: 'sphere',
+                    sphereRadius: this.data.radius
                   });
 
-                  // Add collision listener to collider
+                  // Visual debug mesh (separate from physics body for clarity)
+                  colliderEl.setAttribute('geometry', { primitive: 'sphere', radius: this.data.radius });
+                  colliderEl.setAttribute('material', { color: 'red', opacity: 0.5 });
+                  colliderEl.setAttribute('visible', true);
+                  colliderEl.setAttribute('class', `collider-${boneName}`);
+
+                  // Add collision listener
                   colliderEl.addEventListener('collide', (e) => {
                     const otherEl = e.detail.body.el;
                     if (otherEl.id === 'testBall') {
                       const collisionText = document.getElementById('collisionText');
                       if (collisionText) {
                         collisionText.setAttribute('text', 'value',
-                          `KICK DETECTED!\n${boneName} hit the ball!\n\nGreat technique!`);
+                          `KICK DETECTED!\n${boneName} hit the ball!`);
                         collisionText.setAttribute('text', 'color', 'yellow');
 
-                        // Fade back to cyan after 2 seconds
                         setTimeout(() => {
                           collisionText.setAttribute('text', 'color', 'cyan');
                           collisionText.setAttribute('text', 'value', 'Waiting for collisions...');
                         }, 3000);
                       }
 
-                      // Visual feedback on collider
-                      colliderEl.setAttribute('color', 'yellow');
+                      colliderEl.setAttribute('material', 'color', 'yellow');
                       setTimeout(() => {
-                        colliderEl.setAttribute('color', 'red');
+                        colliderEl.setAttribute('material', 'color', 'red');
                       }, 200);
                     }
                   });
 
                   this.el.sceneEl.appendChild(colliderEl);
-                  this.colliders.push({ element: colliderEl, bone: node, name: boneName });
+                  this.colliders.push({ element: colliderEl, bone: node });
                 }
               });
             });
-
-            console.log(`Created ${this.colliders.length} bone colliders`);
-
-            // Update collision text to show system is ready
-            const collisionText = document.getElementById('collisionText');
-            if (collisionText) {
-              collisionText.setAttribute('text', 'value',
-                `Physics Ready!\n${this.colliders.length} bone colliders active\n\nTry to kick the orange ball!`);
-            }
           }
         });
       },
       tick: function () {
-        // Update collider positions to match bone positions
-        this.colliders.forEach(({ element, bone }) => {
-          const worldPos = new THREE.Vector3();
-          bone.getWorldPosition(worldPos);
-          element.setAttribute('position', worldPos);
+        if (!this.colliders.length) return;
 
-          // Force physics body update
-          if (element.body) {
-            element.body.position.copy(worldPos);
-            element.body.velocity.set(0, 0, 0);
-            element.body.angularVelocity.set(0, 0, 0);
-          }
+        const worldPos = new THREE.Vector3();
+
+        this.colliders.forEach(({ element, bone }) => {
+          if (!element.body) return; // Wait for physics body to initialize
+
+          // Get the bone's current world position
+          bone.getWorldPosition(worldPos);
+
+          // 1. Update the visual entity position
+          element.object3D.position.copy(worldPos);
+
+          // 2. Update the physics body position
+          // We use .set() to safely transfer data between Three.js and Cannon.js
+          element.body.position.set(worldPos.x, worldPos.y, worldPos.z);
+
+          // Note: We do NOT need to zero velocity here because kinematic bodies 
+          // do not accumulate velocity from gravity or collisions.
         });
       },
       remove: function () {
-        // Clean up colliders when component is removed
         this.colliders.forEach(({ element }) => {
-          if (element.parentNode) {
-            element.parentNode.removeChild(element);
-          }
+          if (element.parentNode) element.parentNode.removeChild(element);
         });
         this.colliders = [];
       }
