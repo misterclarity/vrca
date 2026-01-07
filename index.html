@@ -8,7 +8,7 @@
   <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
   <script src="https://unpkg.com/aframe-environment-component@1.3.3/dist/aframe-environment-component.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.1.0/dist/aframe-extras.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/n5ro/aframe-physics-system@v4.0.1/dist/aframe-physics-system.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@4.0.1/dist/aframe-physics-system.min.js"></script>
   <style>
     .a-dialog-text {
       color: white;
@@ -30,6 +30,11 @@
 
     <a-entity id="cameraRig" position="0 0 0">
       <a-entity id="camera" camera look-controls wasd-controls="enabled:true;">
+        <!-- Collision feedback text - attached to camera so it's always visible -->
+        <a-entity id="collisionText" position="0 0 -2" 
+                  text="value: Waiting for collisions...; align: center; width: 2; color: cyan; font: mozillavr"
+                  visible="true"></a-entity>
+
         <a-entity id="timerText" position="0 1.4 -2" text="value: ; 
                   align: center;
                   width: 2;
@@ -95,7 +100,9 @@
     <a-plane static-body position="0 0 0" rotation="-90 0 0" width="20" height="20" color="#7BC8A4" opacity="0.3"></a-plane>
 
     <!-- Test Object to check collisions -->
-    <a-sphere id="testBall" position="0.5 1.5 -1.5" radius="0.1" color="orange" dynamic-body="mass: 1; linearDamping: 0.1; angularDamping: 0.1"></a-sphere>
+    <a-sphere id="testBall" position="0.5 1.5 -1.5" radius="0.1" color="orange" 
+              dynamic-body="mass: 1; linearDamping: 0.1; angularDamping: 0.1"
+              collision-detector></a-sphere>
 
     <a-entity id="leftHand" oculus-touch-controls="hand: left"></a-entity>
     <a-entity id="rightHand" oculus-touch-controls="hand: right"></a-entity>
@@ -164,6 +171,37 @@
     // Add the follow-camera-y component to the model container
     document.getElementById("modelContainer").setAttribute("follow-camera-y", "");
 
+    // Collision detector component
+    AFRAME.registerComponent("collision-detector", {
+      init: function () {
+        this.collisionCount = 0;
+        this.el.addEventListener('collide', (e) => {
+          this.collisionCount++;
+          const otherEl = e.detail.body.el;
+          const otherName = otherEl.id || otherEl.className || 'unknown object';
+          
+          // Update collision text in center of screen
+          const collisionText = document.getElementById('collisionText');
+          if (collisionText) {
+            collisionText.setAttribute('text', 'value', 
+              `COLLISION #${this.collisionCount}\nBall hit: ${otherName}\n\nTotal collisions: ${this.collisionCount}`);
+            collisionText.setAttribute('text', 'color', 'lime');
+            
+            // Fade back to cyan after 2 seconds
+            setTimeout(() => {
+              collisionText.setAttribute('text', 'color', 'cyan');
+            }, 2000);
+          }
+          
+          // Flash the ball
+          this.el.setAttribute('color', 'red');
+          setTimeout(() => {
+            this.el.setAttribute('color', 'orange');
+          }, 200);
+        });
+      }
+    });
+
     // Custom component to create dynamic physics colliders for bones
     AFRAME.registerComponent("bone-collider-system", {
       schema: {
@@ -187,19 +225,54 @@
                   const colliderEl = document.createElement('a-sphere');
                   colliderEl.setAttribute('radius', this.data.radius);
                   colliderEl.setAttribute('color', 'red');
-                  colliderEl.setAttribute('opacity', 0.3);
-                  colliderEl.setAttribute('visible', false); // Set to true for debugging
+                  colliderEl.setAttribute('opacity', 0.5);
+                  colliderEl.setAttribute('visible', true); // Visible for debugging
+                  colliderEl.setAttribute('class', `collider-${boneName}`);
                   colliderEl.setAttribute('dynamic-body', {
                     mass: 0.5,
-                    linearDamping: 0.9,
-                    angularDamping: 0.9
+                    linearDamping: 0.95,
+                    angularDamping: 0.95
+                  });
+                  
+                  // Add collision listener to collider
+                  colliderEl.addEventListener('collide', (e) => {
+                    const otherEl = e.detail.body.el;
+                    if (otherEl.id === 'testBall') {
+                      const collisionText = document.getElementById('collisionText');
+                      if (collisionText) {
+                        collisionText.setAttribute('text', 'value', 
+                          `KICK DETECTED!\n${boneName} hit the ball!\n\nGreat technique!`);
+                        collisionText.setAttribute('text', 'color', 'yellow');
+                        
+                        // Fade back to cyan after 2 seconds
+                        setTimeout(() => {
+                          collisionText.setAttribute('text', 'color', 'cyan');
+                          collisionText.setAttribute('text', 'value', 'Waiting for collisions...');
+                        }, 3000);
+                      }
+                      
+                      // Visual feedback on collider
+                      colliderEl.setAttribute('color', 'yellow');
+                      setTimeout(() => {
+                        colliderEl.setAttribute('color', 'red');
+                      }, 200);
+                    }
                   });
                   
                   this.el.sceneEl.appendChild(colliderEl);
-                  this.colliders.push({ element: colliderEl, bone: node });
+                  this.colliders.push({ element: colliderEl, bone: node, name: boneName });
                 }
               });
             });
+            
+            console.log(`Created ${this.colliders.length} bone colliders`);
+            
+            // Update collision text to show system is ready
+            const collisionText = document.getElementById('collisionText');
+            if (collisionText) {
+              collisionText.setAttribute('text', 'value', 
+                `Physics Ready!\n${this.colliders.length} bone colliders active\n\nTry to kick the orange ball!`);
+            }
           }
         });
       },
@@ -209,12 +282,21 @@
           const worldPos = new THREE.Vector3();
           bone.getWorldPosition(worldPos);
           element.setAttribute('position', worldPos);
+          
+          // Force physics body update
+          if (element.body) {
+            element.body.position.copy(worldPos);
+            element.body.velocity.set(0, 0, 0);
+            element.body.angularVelocity.set(0, 0, 0);
+          }
         });
       },
       remove: function () {
         // Clean up colliders when component is removed
         this.colliders.forEach(({ element }) => {
-          element.parentNode.removeChild(element);
+          if (element.parentNode) {
+            element.parentNode.removeChild(element);
+          }
         });
         this.colliders = [];
       }
