@@ -5,8 +5,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" href="https://glitch.com/favicon.ico" />
-  <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
-  <script src="https://unpkg.com/aframe-environment-component@1.3.3/dist/aframe-environment-component.min.js"></script>
+  <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
+  <script src="https://unpkg.com/aframe-environment-component@1.5.x/dist/aframe-environment-component.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.6.1/dist/aframe-extras.min.js"></script>
   <script
     src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.2.4/dist/aframe-physics-system.min.js"></script>
@@ -31,18 +31,17 @@
       <audio id="audio" src="assets/Luna.ogg"></audio>
     </a-assets>
 
-    <a-entity id="cameraRig" position="0 0 0">
+    <a-entity id="cameraRig" position="0 1.2 0">
       <a-entity id="camera" camera look-controls wasd-controls="enabled:true;">
         <!-- Screen flash overlay for hit feedback -->
         <a-plane id="screenFlash" position="0 0 -0.5" width="2" height="2"
-          material="color: red; opacity: 0; transparent: true; shader: flat"
-          visible="true"></a-plane>
+          material="color: red; opacity: 0; transparent: true; shader: flat" visible="true"></a-plane>
 
         <!-- ==================== TOP HUD AREA ==================== -->
         <!-- Score Panel - Top Left -->
         <a-entity id="scorePanel" position="-0.55 0.45 -1.5" visible="false">
-          <a-rounded position="0 0 0.001" width="0.4" height="0.18" radius="0.025"
-            color="#1a1a2e" opacity="0.85"></a-rounded>
+          <a-rounded position="0 0 0.001" width="0.4" height="0.18" radius="0.025" color="#1a1a2e"
+            opacity="0.85"></a-rounded>
           <a-entity id="scoreText" position="0 0.04 0.002"
             text="value: 0; align: center; width: 1.5; color: #ffd93d; font: mozillavr; anchor: center"></a-entity>
           <a-entity position="0 -0.04 0.002"
@@ -51,8 +50,8 @@
 
         <!-- Combo Panel - Top Center -->
         <a-entity id="comboPanel" position="0 0.45 -1.5" visible="false">
-          <a-rounded id="comboBg" position="0 0 0.001" width="0.35" height="0.18" radius="0.025"
-            color="#1a1a2e" opacity="0.85"></a-rounded>
+          <a-rounded id="comboBg" position="0 0 0.001" width="0.35" height="0.18" radius="0.025" color="#1a1a2e"
+            opacity="0.85"></a-rounded>
           <a-entity id="comboText" position="0 0.04 0.002"
             text="value: 0x; align: center; width: 1.2; color: #00d4ff; font: mozillavr; anchor: center"></a-entity>
           <a-entity position="0 -0.04 0.002"
@@ -61,8 +60,8 @@
 
         <!-- Level/XP Panel - Top Right -->
         <a-entity id="levelPanel" position="0.55 0.45 -1.5" visible="false">
-          <a-rounded position="0 0 0.001" width="0.4" height="0.18" radius="0.025"
-            color="#1a1a2e" opacity="0.85"></a-rounded>
+          <a-rounded position="0 0 0.001" width="0.4" height="0.18" radius="0.025" color="#1a1a2e"
+            opacity="0.85"></a-rounded>
           <a-entity id="levelText" position="0 0.04 0.002"
             text="value: Lv.1; align: center; width: 1.0; color: #6bcb77; font: mozillavr; anchor: center"></a-entity>
           <a-entity id="xpText" position="0 -0.04 0.002"
@@ -71,24 +70,24 @@
 
         <!-- Timer (Roda/Challenge Mode) - Below top panels -->
         <a-entity id="timerPanel" position="0 0.28 -1.5" visible="false">
-          <a-rounded position="0 0 0.001" width="0.5" height="0.1" radius="0.03"
-            color="#1a1a2e" opacity="0.85"></a-rounded>
+          <a-rounded position="0 0 0.001" width="0.5" height="0.1" radius="0.03" color="#1a1a2e"
+            opacity="0.85"></a-rounded>
           <a-entity id="timerText" position="0 0 0"
             text="value: 10s; align: center; width: 1.2; color: #ff6b6b; font: mozillavr; anchor: center"></a-entity>
         </a-entity>
 
         <!-- Move Title - Below timer -->
         <a-entity id="moveTitlePanel" position="0 0.18 -1.5" visible="false">
-          <a-rounded position="0 0 0.001" width="0.8" height="0.08" radius="0.02"
-            color="#1a1a2e" opacity="0.85"></a-rounded>
+          <a-rounded position="0 0 0.001" width="0.8" height="0.08" radius="0.02" color="#1a1a2e"
+            opacity="0.85"></a-rounded>
           <a-entity id="moveTitleText" position="0 0 0"
             text="value: Ginga; align: center; width: 1.4; color: #ffd93d; font: mozillavr; anchor: center"></a-entity>
         </a-entity>
 
         <!-- Achievement Notification - Top center popup -->
         <a-entity id="achievementPanel" position="0 0.55 -1.5" visible="false">
-          <a-rounded position="0 0 0.001" width="0.8" height="0.12" radius="0.03"
-            color="#6bcb77" opacity="0.95"></a-rounded>
+          <a-rounded position="0 0 0.001" width="0.8" height="0.12" radius="0.03" color="#6bcb77"
+            opacity="0.95"></a-rounded>
           <a-entity position="0 0.02 0.002"
             text="value: ACHIEVEMENT; align: center; width: 0.8; color: #0d1b2a; font: mozillavr; anchor: center"></a-entity>
           <a-entity id="achievementText" position="0 -0.025 0.002"
@@ -98,8 +97,8 @@
         <!-- ==================== COMBAT FEEDBACK (CENTER) ==================== -->
         <a-entity id="combatFeedbackPanel" position="0 0.05 -1.5" visible="true">
           <!-- Background panel -->
-          <a-rounded position="0 0 0.001" width="0.7" height="0.22" radius="0.03"
-            color="#0d1b2a" opacity="0.9"></a-rounded>
+          <a-rounded position="0 0 0.001" width="0.7" height="0.22" radius="0.03" color="#0d1b2a"
+            opacity="0.9"></a-rounded>
           <!-- Status icon circle -->
           <a-circle id="statusIcon" position="0 0.04 0.002" radius="0.035"
             material="color: #00d4ff; shader: flat"></a-circle>
@@ -110,8 +109,8 @@
 
         <!-- ==================== STATS PANEL (Bottom Left) ==================== -->
         <a-entity id="statsPanel" position="-0.5 -0.35 -1.5" visible="false">
-          <a-rounded position="0 0 0.001" width="0.35" height="0.22" radius="0.025"
-            color="#1a1a2e" opacity="0.85"></a-rounded>
+          <a-rounded position="0 0 0.001" width="0.35" height="0.22" radius="0.025" color="#1a1a2e"
+            opacity="0.85"></a-rounded>
           <!-- Hits taken -->
           <a-entity position="-0.12 0.06 0.002">
             <a-circle radius="0.018" material="color: #ff6b6b; shader: flat"></a-circle>
@@ -137,8 +136,8 @@
 
         <!-- ==================== MODE & DIFFICULTY (Bottom Right) ==================== -->
         <a-entity id="modePanel" position="0.5 -0.35 -1.5" visible="false">
-          <a-rounded position="0 0 0.001" width="0.38" height="0.15" radius="0.025"
-            color="#1a1a2e" opacity="0.85"></a-rounded>
+          <a-rounded position="0 0 0.001" width="0.38" height="0.15" radius="0.025" color="#1a1a2e"
+            opacity="0.85"></a-rounded>
           <a-entity id="modeText" position="0 0.03 0.002"
             text="value: TRAINING; align: center; width: 0.6; color: #00d4ff; font: mozillavr; anchor: center"></a-entity>
           <a-entity id="difficultyText" position="0 -0.03 0.002"
@@ -147,8 +146,8 @@
 
         <!-- ==================== INSTRUCTION TEXT (Below center) ==================== -->
         <a-entity id="instructionPanel" position="0 -0.15 -1.5" visible="false">
-          <a-rounded position="0 0 0.001" width="0.9" height="0.08" radius="0.02"
-            color="#16213e" opacity="0.8"></a-rounded>
+          <a-rounded position="0 0 0.001" width="0.9" height="0.08" radius="0.02" color="#16213e"
+            opacity="0.8"></a-rounded>
           <a-entity id="instructionText" position="0 0 0.002"
             text="value: Press joystick for help; align: center; width: 1.2; color: #aaa; font: mozillavr; anchor: center"></a-entity>
         </a-entity>
@@ -156,12 +155,12 @@
         <!-- ==================== HELP SCREEN ==================== -->
         <a-entity id="helpScreen" position="0 0.1 -1.5" visible="false">
           <!-- Main background panel -->
-          <a-rounded position="0 0 0.001" width="1.1" height="0.95" radius="0.04"
-            color="#0d1b2a" opacity="0.95"></a-rounded>
+          <a-rounded position="0 0 0.001" width="1.1" height="0.95" radius="0.04" color="#0d1b2a"
+            opacity="0.95"></a-rounded>
 
           <!-- Header -->
-          <a-rounded position="0 0.4 0.002" width="0.5" height="0.08" radius="0.02"
-            color="#00d4ff" opacity="1"></a-rounded>
+          <a-rounded position="0 0.4 0.002" width="0.5" height="0.08" radius="0.02" color="#00d4ff"
+            opacity="1"></a-rounded>
           <a-entity position="0 0.4 0.003"
             text="value: CONTROLS; align: center; width: 1.0; color: #0d1b2a; font: mozillavr; anchor: center"></a-entity>
 
@@ -198,12 +197,12 @@
         <!-- ==================== SESSION SUMMARY SCREEN ==================== -->
         <a-entity id="summaryScreen" position="0 0.1 -1.5" visible="false">
           <!-- Main background panel -->
-          <a-rounded position="0 0 0.001" width="1.1" height="0.9" radius="0.04"
-            color="#0d1b2a" opacity="0.95"></a-rounded>
+          <a-rounded position="0 0 0.001" width="1.1" height="0.9" radius="0.04" color="#0d1b2a"
+            opacity="0.95"></a-rounded>
 
           <!-- Header -->
-          <a-rounded position="0 0.38 0.002" width="0.6" height="0.08" radius="0.02"
-            color="#ffd93d" opacity="1"></a-rounded>
+          <a-rounded position="0 0.38 0.002" width="0.6" height="0.08" radius="0.02" color="#ffd93d"
+            opacity="1"></a-rounded>
           <a-entity position="0 0.38 0.003"
             text="value: SESSION COMPLETE; align: center; width: 1.0; color: #0d1b2a; font: mozillavr; anchor: center"></a-entity>
 
@@ -243,8 +242,8 @@
             text="value: Level 1; align: center; width: 0.8; color: #00d4ff; font: mozillavr"></a-entity>
 
           <!-- Continue button -->
-          <a-rounded position="0 -0.42 0.002" width="0.5" height="0.08" radius="0.02"
-            color="#6bcb77" opacity="1"></a-rounded>
+          <a-rounded position="0 -0.42 0.002" width="0.5" height="0.08" radius="0.02" color="#6bcb77"
+            opacity="1"></a-rounded>
           <a-entity position="0 -0.42 0.003"
             text="value: Press [B] Continue; align: center; width: 0.8; color: #0d1b2a; font: mozillavr; anchor: center"></a-entity>
         </a-entity>
@@ -252,12 +251,12 @@
         <!-- ==================== WELCOME SCREEN ==================== -->
         <a-entity id="welcomeScreen" position="0 0.1 -1.5" visible="true">
           <!-- Main background panel -->
-          <a-rounded position="0 0 0.001" width="1.1" height="0.85" radius="0.04"
-            color="#0d1b2a" opacity="0.95"></a-rounded>
+          <a-rounded position="0 0 0.001" width="1.1" height="0.85" radius="0.04" color="#0d1b2a"
+            opacity="0.95"></a-rounded>
 
           <!-- Title bar -->
-          <a-rounded position="0 0.35 0.002" width="0.9" height="0.1" radius="0.025"
-            color="#ffd93d" opacity="1"></a-rounded>
+          <a-rounded position="0 0.35 0.002" width="0.9" height="0.1" radius="0.025" color="#ffd93d"
+            opacity="1"></a-rounded>
           <a-entity position="0 0.35 0.003"
             text="value: CAPOEIRA VR TRAINER; align: center; width: 1.2; color: #0d1b2a; font: mozillavr; anchor: center"></a-entity>
 
@@ -276,20 +275,20 @@
 
           <!-- Difficulty Options -->
           <a-entity id="diffEasy" position="-0.3 -0.08 0.002">
-            <a-rounded position="0 0 0" width="0.25" height="0.08" radius="0.015"
-              color="#1a1a2e" opacity="0.9"></a-rounded>
+            <a-rounded position="0 0 0" width="0.25" height="0.08" radius="0.015" color="#1a1a2e"
+              opacity="0.9"></a-rounded>
             <a-entity position="0 0 0.001"
               text="value: EASY; align: center; width: 0.5; color: #6bcb77; font: mozillavr; anchor: center"></a-entity>
           </a-entity>
           <a-entity id="diffNormal" position="0 -0.08 0.002">
-            <a-rounded position="0 0 0" width="0.25" height="0.08" radius="0.015"
-              color="#ffd93d" opacity="1"></a-rounded>
+            <a-rounded position="0 0 0" width="0.25" height="0.08" radius="0.015" color="#ffd93d"
+              opacity="1"></a-rounded>
             <a-entity position="0 0 0.001"
               text="value: NORMAL; align: center; width: 0.5; color: #0d1b2a; font: mozillavr; anchor: center"></a-entity>
           </a-entity>
           <a-entity id="diffHard" position="0.3 -0.08 0.002">
-            <a-rounded position="0 0 0" width="0.25" height="0.08" radius="0.015"
-              color="#1a1a2e" opacity="0.9"></a-rounded>
+            <a-rounded position="0 0 0" width="0.25" height="0.08" radius="0.015" color="#1a1a2e"
+              opacity="0.9"></a-rounded>
             <a-entity position="0 0 0.001"
               text="value: HARD; align: center; width: 0.5; color: #ff6b6b; font: mozillavr; anchor: center"></a-entity>
           </a-entity>
@@ -307,8 +306,8 @@
             text="value: 0; align: center; width: 1.2; color: #ffd93d; font: mozillavr; anchor: center"></a-entity>
 
           <!-- Start button indicator -->
-          <a-rounded position="0 -0.43 0.002" width="0.55" height="0.08" radius="0.02"
-            color="#6bcb77" opacity="1"></a-rounded>
+          <a-rounded position="0 -0.43 0.002" width="0.55" height="0.08" radius="0.02" color="#6bcb77"
+            opacity="1"></a-rounded>
           <a-entity position="0 -0.43 0.003"
             text="value: Press [B] to Start; align: center; width: 0.85; color: #0d1b2a; font: mozillavr; anchor: center"></a-entity>
         </a-entity>
@@ -336,7 +335,8 @@
       <a-sphere radius="0.08" material="color: green; opacity: 0.3; transparent: true" visible="false"></a-sphere>
     </a-entity>
 
-    <a-entity sound="src: #audio; autoplay: true; loop: true; volume: 0.5" environment="preset: forest"></a-entity>
+    <a-entity environment="preset: japan; dressingAmount: 5"></a-entity>
+    <a-entity sound="src: #audio; autoplay: true; loop: true; volume: 0.5"></a-entity>
   </a-scene>
 
   <script>
@@ -348,6 +348,36 @@
     const OFFENSIVE_START_INDEX = 0;
     const DEFAULT_MODEL_ROTATION = 0;
     const FACING_AWAY_ROTATION = 180;
+
+    // Welcome screen elements
+    const welcomeLevelText = document.getElementById("welcomeLevelText");
+    const welcomeXPText = document.getElementById("welcomeXPText");
+    const welcomeHighScore = document.getElementById("welcomeHighScore");
+    const diffEasy = document.getElementById("diffEasy");
+    const diffNormal = document.getElementById("diffNormal");
+    const diffHard = document.getElementById("diffHard");
+
+    // --- DOM ELEMENTS ---
+    const entity = document.getElementById("model");
+    const instructionText = document.getElementById("instructionText");
+    const instructionPanel = document.getElementById("instructionPanel");
+    const helpScreen = document.getElementById("helpScreen");
+    const moveTitleText = document.getElementById("moveTitleText");
+    const moveTitlePanel = document.getElementById("moveTitlePanel");
+    const timerText = document.getElementById("timerText");
+    const timerPanel = document.getElementById("timerPanel");
+    const leftHand = document.getElementById("leftHand");
+    const rightHand = document.getElementById("rightHand");
+    const welcomeScreen = document.getElementById("welcomeScreen");
+    const statsPanel = document.getElementById("statsPanel");
+    const hitsText = document.getElementById("hitsText");
+    const blocksText = document.getElementById("blocksText");
+    const bestComboText = document.getElementById("bestComboText");
+    const modePanel = document.getElementById("modePanel");
+    const modeText = document.getElementById("modeText");
+    const difficultyText = document.getElementById("difficultyText");
+    const statusIcon = document.getElementById("statusIcon");
+    const combatFeedbackPanel = document.getElementById("combatFeedbackPanel");
 
     const moveData = {
       defensive: [
@@ -450,7 +480,7 @@
       bestComboEver: 0,
       achievements: {},
 
-      load: function() {
+      load: function () {
         try {
           const saved = localStorage.getItem('capoeiraVRData');
           if (saved) {
@@ -471,7 +501,7 @@
         this.updateWelcomeScreen();
       },
 
-      save: function() {
+      save: function () {
         try {
           localStorage.setItem('capoeiraVRData', JSON.stringify({
             totalXP: this.totalXP,
@@ -489,7 +519,7 @@
         }
       },
 
-      addXP: function(amount) {
+      addXP: function (amount) {
         const multiplier = DIFFICULTY[this.currentDifficulty].xpMultiplier;
         const xpGained = Math.floor(amount * multiplier);
         this.totalXP += xpGained;
@@ -505,7 +535,7 @@
         return xpGained;
       },
 
-      calculateLevel: function() {
+      calculateLevel: function () {
         for (let i = LEVELS.length - 1; i >= 0; i--) {
           if (this.totalXP >= LEVELS[i].xpRequired) {
             return LEVELS[i].level;
@@ -514,7 +544,7 @@
         return 1;
       },
 
-      getLevelInfo: function() {
+      getLevelInfo: function () {
         const current = LEVELS[this.currentLevel - 1];
         const next = LEVELS[this.currentLevel] || current;
         const xpForNext = next.xpRequired - (LEVELS[this.currentLevel - 1]?.xpRequired || 0);
@@ -522,7 +552,7 @@
         return { current, next, xpForNext, xpProgress };
       },
 
-      onLevelUp: function(newLevel) {
+      onLevelUp: function (newLevel) {
         const levelInfo = LEVELS[newLevel - 1];
         gameScore.showAchievement(`LEVEL UP! ${levelInfo.name}`);
 
@@ -530,13 +560,13 @@
         if (newLevel >= 5) gameScore.unlockAchievement('level5');
       },
 
-      setDifficulty: function(diff) {
+      setDifficulty: function (diff) {
         this.currentDifficulty = diff;
         this.save();
         this.updateDifficultyUI();
       },
 
-      updateDifficultyUI: function() {
+      updateDifficultyUI: function () {
         // Update welcome screen difficulty buttons
         const difficulties = ['easy', 'normal', 'hard'];
         difficulties.forEach(d => {
@@ -561,7 +591,7 @@
         }
       },
 
-      updateWelcomeScreen: function() {
+      updateWelcomeScreen: function () {
         const levelInfo = this.getLevelInfo();
 
         if (welcomeLevelText) {
@@ -588,7 +618,7 @@
       comboTimeout: null,
       achievementTimeout: null,
 
-      reset: function() {
+      reset: function () {
         this.score = 0;
         this.combo = 0;
         this.bestCombo = 0;
@@ -596,7 +626,7 @@
         this.updateUI();
       },
 
-      addBlock: function() {
+      addBlock: function () {
         const diff = DIFFICULTY[gameData.currentDifficulty];
         this.combo++;
 
@@ -630,14 +660,14 @@
         return points;
       },
 
-      addHit: function() {
+      addHit: function () {
         const diff = DIFFICULTY[gameData.currentDifficulty];
         this.score = Math.max(0, this.score - diff.hitPenalty);
         this.resetCombo();
         this.updateUI();
       },
 
-      resetCombo: function() {
+      resetCombo: function () {
         this.combo = 0;
         if (this.comboTimeout) {
           clearTimeout(this.comboTimeout);
@@ -646,7 +676,7 @@
         this.updateUI();
       },
 
-      updateUI: function() {
+      updateUI: function () {
         if (scoreText) scoreText.setAttribute('text', 'value', this.score.toString());
 
         if (comboText) {
@@ -675,7 +705,7 @@
         if (xpText) xpText.setAttribute('text', 'value', `${levelInfo.xpProgress}/${levelInfo.xpForNext} XP`);
       },
 
-      unlockAchievement: function(id) {
+      unlockAchievement: function (id) {
         if (gameData.achievements[id]) return; // Already unlocked
 
         const achievement = ACHIEVEMENTS[id];
@@ -687,7 +717,7 @@
         this.showAchievement(achievement.name);
       },
 
-      showAchievement: function(text) {
+      showAchievement: function (text) {
         if (!achievementPanel || !achievementText) return;
 
         if (this.achievementTimeout) clearTimeout(this.achievementTimeout);
@@ -700,7 +730,7 @@
         }, 3000);
       },
 
-      endSession: function() {
+      endSession: function () {
         // Calculate XP based on performance
         const baseXP = Math.floor(this.score / 10);
         const comboBonus = this.bestCombo * 2;
@@ -731,7 +761,7 @@
         return { xpGained, sessionXP: this.sessionXP };
       },
 
-      showSummary: function() {
+      showSummary: function () {
         state.showingSummary = true;
 
         // Hide game UI
@@ -758,12 +788,12 @@
         summaryScreen.setAttribute('visible', true);
       },
 
-      hideSummary: function() {
+      hideSummary: function () {
         state.showingSummary = false;
         summaryScreen.setAttribute('visible', false);
       },
 
-      cleanup: function() {
+      cleanup: function () {
         if (this.comboTimeout) clearTimeout(this.comboTimeout);
         if (this.achievementTimeout) clearTimeout(this.achievementTimeout);
       }
@@ -771,28 +801,6 @@
 
     // Load saved game data on start
     gameData.load();
-
-    // --- DOM ELEMENTS ---
-    const entity = document.getElementById("model");
-    const instructionText = document.getElementById("instructionText");
-    const instructionPanel = document.getElementById("instructionPanel");
-    const helpScreen = document.getElementById("helpScreen");
-    const moveTitleText = document.getElementById("moveTitleText");
-    const moveTitlePanel = document.getElementById("moveTitlePanel");
-    const timerText = document.getElementById("timerText");
-    const timerPanel = document.getElementById("timerPanel");
-    const leftHand = document.getElementById("leftHand");
-    const rightHand = document.getElementById("rightHand");
-    const welcomeScreen = document.getElementById("welcomeScreen");
-    const statsPanel = document.getElementById("statsPanel");
-    const hitsText = document.getElementById("hitsText");
-    const blocksText = document.getElementById("blocksText");
-    const bestComboText = document.getElementById("bestComboText");
-    const modePanel = document.getElementById("modePanel");
-    const modeText = document.getElementById("modeText");
-    const difficultyText = document.getElementById("difficultyText");
-    const statusIcon = document.getElementById("statusIcon");
-    const combatFeedbackPanel = document.getElementById("combatFeedbackPanel");
 
     // New gamification elements
     const scorePanel = document.getElementById("scorePanel");
@@ -806,14 +814,6 @@
     const achievementPanel = document.getElementById("achievementPanel");
     const achievementText = document.getElementById("achievementText");
     const summaryScreen = document.getElementById("summaryScreen");
-
-    // Welcome screen elements
-    const welcomeLevelText = document.getElementById("welcomeLevelText");
-    const welcomeXPText = document.getElementById("welcomeXPText");
-    const welcomeHighScore = document.getElementById("welcomeHighScore");
-    const diffEasy = document.getElementById("diffEasy");
-    const diffNormal = document.getElementById("diffNormal");
-    const diffHard = document.getElementById("diffHard");
 
     // --- A-FRAME COMPONENTS ---
 
@@ -848,18 +848,18 @@
         return DIFFICULTY[gameData.currentDifficulty].hitCooldown;
       },
 
-      init: function() {
+      init: function () {
         this.screenFlash = document.getElementById('screenFlash');
       },
 
-      reset: function() {
+      reset: function () {
         this.hitCount = 0;
         this.blockCount = 0;
         this.lastHitTime = 0;
         this.updateStatsPanel();
       },
 
-      triggerScreenFlash: function(color = 'red', duration = 150) {
+      triggerScreenFlash: function (color = 'red', duration = 150) {
         if (!this.screenFlash) return;
 
         if (this.flashTimeout) clearTimeout(this.flashTimeout);
@@ -872,7 +872,7 @@
         }, duration);
       },
 
-      triggerHaptics: function(hand, intensity = 0.8, duration = 100) {
+      triggerHaptics: function (hand, intensity = 0.8, duration = 100) {
         const controller = hand === 'left' ? leftHand : rightHand;
         if (!controller || !controller.components['oculus-touch-controls']) return;
 
@@ -882,17 +882,17 @@
         }
       },
 
-      triggerBothHaptics: function(intensity = 1.0, duration = 150) {
+      triggerBothHaptics: function (intensity = 1.0, duration = 150) {
         this.triggerHaptics('left', intensity, duration);
         this.triggerHaptics('right', intensity, duration);
       },
 
-      updateStatsPanel: function() {
+      updateStatsPanel: function () {
         if (hitsText) hitsText.setAttribute('text', 'value', `${this.hitCount} Hits`);
         if (blocksText) blocksText.setAttribute('text', 'value', `${this.blockCount} Blocks`);
       },
 
-      updateStatusIcon: function(color) {
+      updateStatusIcon: function (color) {
         if (!statusIcon) return;
         if (this.iconTimeout) clearTimeout(this.iconTimeout);
 
@@ -903,7 +903,7 @@
         }, 1500);
       },
 
-      registerHit: function(attackerPart, targetPart) {
+      registerHit: function (attackerPart, targetPart) {
         const now = Date.now();
         if (now - this.lastHitTime < this.hitCooldown) return; // Prevent spam
         this.lastHitTime = now;
@@ -925,7 +925,7 @@
         this.updateText(`HIT! -${DIFFICULTY[gameData.currentDifficulty].hitPenalty}`, '#ff6b6b');
       },
 
-      registerBlock: function(attackerPart, blockerPart) {
+      registerBlock: function (attackerPart, blockerPart) {
         const now = Date.now();
         if (now - this.lastHitTime < this.hitCooldown) return;
         this.lastHitTime = now;
@@ -950,7 +950,7 @@
         this.updateText(`+${points}${comboText}`, '#6bcb77');
       },
 
-      registerPlayerStrike: function(playerPart, targetPart) {
+      registerPlayerStrike: function (playerPart, targetPart) {
         const now = Date.now();
         if (now - this.lastHitTime < this.hitCooldown) return;
         this.lastHitTime = now;
@@ -965,7 +965,7 @@
         this.updateText(`NICE HIT!`, '#00d4ff');
       },
 
-      updateText: function(message, color) {
+      updateText: function (message, color) {
         const collisionText = document.getElementById('collisionText');
         if (!collisionText) return;
 
@@ -980,7 +980,7 @@
         }, 2000);
       },
 
-      cleanup: function() {
+      cleanup: function () {
         if (this.flashTimeout) clearTimeout(this.flashTimeout);
         if (this.textTimeout) clearTimeout(this.textTimeout);
         if (this.iconTimeout) clearTimeout(this.iconTimeout);
