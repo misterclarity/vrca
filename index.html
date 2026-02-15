@@ -1005,26 +1005,18 @@
         this.worldPos = new THREE.Vector3();
         this._lastDebugLog = 0;
 
-        // For head collider, we need to follow the camera
-        if (this.data.bodyPart === 'head') {
-          // Set up physics body
-          this.el.setAttribute('body', {
-            type: 'kinematic',
-            shape: 'sphere',
-            sphereRadius: 0.15,
-            emitCollisionEvents: true
-          });
-        } else {
-          // Hand colliders - physics on the child sphere or the hand itself
-          this.el.setAttribute('body', {
-            type: 'kinematic',
-            shape: 'sphere',
-            sphereRadius: 0.08,
-            emitCollisionEvents: true
-          });
-        }
+        const r = (this.data.bodyPart === 'head') ? 0.15 : 0.08;
 
-        // Mark this entity as a player part for collision detection
+        this.el.setAttribute('body', {
+          type: 'dynamic',
+          mass: 0.001,
+          shape: 'sphere',
+          sphereRadius: r,
+          emitCollisionEvents: true,
+          linearDamping: 0.99,
+          angularDamping: 0.99
+        });
+
         this.el.classList.add('player-body');
         this.el.setAttribute('data-body-part', this.data.bodyPart);
 
