@@ -31,20 +31,16 @@
       <audio id="audio" src="assets/Luna.ogg"></audio>
     </a-assets>
 
-    <a-entity id="cameraRig" position="0 1.6 0">
+    <a-entity id="cameraRig" position="0 0 0">
       <a-entity id="camera" camera look-controls wasd-controls="enabled:true;">
         <!-- Screen flash overlay for hit feedback -->
-        <a-plane id="screenFlash"
-          position="0 0 -0.5"
-          width="2" height="2"
+        <a-plane id="screenFlash" position="0 0 -0.5" width="2" height="2"
           material="color: red; opacity: 0; transparent: true; shader: flat; depthTest: false; depthWrite: false"
           visible="true"></a-plane>
 
         <!-- Collision/contact HUD text -->
-        <a-entity id="contactText"
-          position="0 0.05 -1"
-          text="value: ; align: center; width: 2.2; color: #FFFFFF; wrapCount: 28"
-          visible="false">
+        <a-entity id="contactText" position="0 0.05 -1"
+          text="value: ; align: center; width: 2.2; color: #FFFFFF; wrapCount: 28" visible="false">
         </a-entity>
 
         <!-- ==================== TOP HUD AREA ==================== -->
@@ -1066,26 +1062,26 @@
       }
     });
 
-      // Logs all bone names in a loaded glTF model.
-      AFRAME.registerComponent('log-bones', {
-        init: function () {
-          this.el.addEventListener('model-loaded', () => {
-            const obj = this.el.getObject3D('mesh');
-            if (!obj) {
-              console.log('[log-bones] no mesh/object3D found');
-              return;
-            }
+    // Logs all bone names in a loaded glTF model.
+    AFRAME.registerComponent('log-bones', {
+      init: function () {
+        this.el.addEventListener('model-loaded', () => {
+          const obj = this.el.getObject3D('mesh');
+          if (!obj) {
+            console.log('[log-bones] no mesh/object3D found');
+            return;
+          }
 
-            const bones = [];
-            obj.traverse((n) => {
-              if (n && n.isBone) bones.push(n.name || '(unnamed)');
-            });
-
-            bones.sort();
-            console.log(`[log-bones] bone count=${bones.length}`, bones);
+          const bones = [];
+          obj.traverse((n) => {
+            if (n && n.isBone) bones.push(n.name || '(unnamed)');
           });
-        }
-      });
+
+          bones.sort();
+          console.log(`[log-bones] bone count=${bones.length}`, bones);
+        });
+      }
+    });
 
     // Contact/collision HUD
     const CONTACT_HUD_DURATION_MS = 800;
@@ -1167,12 +1163,12 @@
                         attackerBone: boneName,
                         attackerName: friendlyName,
                         targetBodyPart: playerBodyPart,
-                          targetElId: otherEl.id || null,
-                          score: gameScore?.score ?? null,
-                          combo: gameScore?.combo ?? null,
-                          hits: combatFeedback?.hitCount ?? null,
-                          blocks: combatFeedback?.blockCount ?? null
-                        });
+                        targetElId: otherEl.id || null,
+                        score: gameScore?.score ?? null,
+                        combo: gameScore?.combo ?? null,
+                        hits: combatFeedback?.hitCount ?? null,
+                        blocks: combatFeedback?.blockCount ?? null
+                      });
 
                       // Model hit the player!
                       if (playerBodyPart === 'head') {
