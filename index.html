@@ -21,7 +21,7 @@
 </head>
 
 <body>
-  <a-scene vr-mode-ui="enabled: true" physics="debug: false; gravity: 0 -9.8 0;">
+  <a-scene vr-mode-ui="enabled: true" physics="debug: true; gravity: 0 -9.8 0;">
     <a-assets>
       <a-asset-item id="ginga1" src="assets/Ginga1.glb"></a-asset-item>
       <a-asset-item id="macaco" src="assets/Macaco%20Side.glb"></a-asset-item>
@@ -31,11 +31,17 @@
       <audio id="audio" src="assets/Luna.ogg"></audio>
     </a-assets>
 
-    <a-entity id="cameraRig" position="0 1.6 0">
+    <a-entity id="cameraRig" position="0 0 0">
       <a-entity id="camera" camera look-controls wasd-controls="enabled:true;">
         <!-- Screen flash overlay for hit feedback -->
         <a-plane id="screenFlash" position="0 0 -0.5" width="2" height="2"
-          material="color: red; opacity: 0; transparent: true; shader: flat" visible="true"></a-plane>
+          material="color: red; opacity: 0; transparent: true; shader: flat; depthTest: false; depthWrite: false"
+          visible="true"></a-plane>
+
+        <!-- Collision/contact HUD text -->
+        <a-entity id="contactText" position="0 0.05 -1"
+          text="value: ; align: center; width: 2.2; color: #FFFFFF; wrapCount: 28" visible="false">
+        </a-entity>
 
         <!-- ==================== TOP HUD AREA ==================== -->
         <!-- Score Panel - Top Left -->
@@ -316,7 +322,7 @@
 
     <a-entity id="modelContainer">
       <a-gltf-model id="model" src="#ginga1" scale="0.01 0.01 0.01" position="0 0 -2" rotation="0 0 0"
-        animation-mixer="timeScale: 1">
+        animation-mixer="timeScale: 1" log-bones>
       </a-gltf-model>
     </a-entity>
 
@@ -1002,27 +1008,28 @@
       init: function () {
         this.camera = document.getElementById('camera');
         this.worldPos = new THREE.Vector3();
+        this._lastDebugLog = 0;
 
-        // For head collider, we need to follow the camera
-        if (this.data.bodyPart === 'head') {
-          // Set up physics body
-          this.el.setAttribute('body', {
-            type: 'kinematic',
-            shape: 'sphere',
-            sphereRadius: 0.15
-          });
-        } else {
-          // Hand colliders - physics on the child sphere or the hand itself
-          this.el.setAttribute('body', {
-            type: 'kinematic',
-            shape: 'sphere',
-            sphereRadius: 0.08
-          });
-        }
+        const r = (this.data.bodyPart === 'head') ? 0.15 : 0.08;
 
-        // Mark this entity as a player part for collision detection
+        this.el.setAttribute('body', {
+          type: 'dynamic',
+          mass: 0.001,
+          shape: 'sphere',
+          sphereRadius: r,
+          emitCollisionEvents: true,
+          linearDamping: 0.99,
+          angularDamping: 0.99
+        });
+
         this.el.classList.add('player-body');
         this.el.setAttribute('data-body-part', this.data.bodyPart);
+
+        // Debug: confirm the component is actually initializing
+        console.log('[player-collider:init]', this.data.bodyPart, {
+          elId: this.el.id || null,
+          hasBody: !!this.el.body
+        });
       },
       tick: function () {
         // Head collider follows camera position
@@ -1033,6 +1040,18 @@
           if (this.el.body) {
             this.el.body.position.set(this.worldPos.x, this.worldPos.y, this.worldPos.z);
           }
+
+          // Debug once per second
+          // const now = Date.now();
+          // if (now - this._lastDebugLog > 1000) {
+          //   this._lastDebugLog = now;
+          //   console.log('[player-collider:tick]', 'head', {
+          //     x: +this.worldPos.x.toFixed(3),
+          //     y: +this.worldPos.y.toFixed(3),
+          //     z: +this.worldPos.z.toFixed(3),
+          //     hasBody: !!this.el.body
+          //   });
+          // }
         }
         // Hand colliders automatically follow the controller via oculus-touch-controls
         // Just sync physics body position
@@ -1043,10 +1062,55 @@
       }
     });
 
+    // Logs all bone names in a loaded glTF model.
+    AFRAME.registerComponent('log-bones', {
+      init: function () {
+        this.el.addEventListener('model-loaded', () => {
+          const obj = this.el.getObject3D('mesh');
+          if (!obj) {
+            console.log('[log-bones] no mesh/object3D found');
+            return;
+          }
+
+          const bones = [];
+          obj.traverse((n) => {
+            if (n && n.isBone) bones.push(n.name || '(unnamed)');
+          });
+
+          bones.sort();
+          console.log(`[log-bones] bone count=${bones.length}`, bones);
+        });
+      }
+    });
+
+    // Contact/collision HUD
+    const CONTACT_HUD_DURATION_MS = 800;
+    const CONTACT_HUD_COOLDOWN_MS = 120;
+    let _contactHudTimer = null;
+    let _lastContactHudAt = 0;
+
+    function showContactHUD() {
+      const now = Date.now();
+      if (now - _lastContactHudAt < CONTACT_HUD_COOLDOWN_MS) return;
+      _lastContactHudAt = now;
+
+      const el = document.getElementById('contactText');
+      if (!el) return;
+
+      el.setAttribute('text', 'value', "CONTACT!");
+      el.setAttribute('visible', true);
+
+      if (_contactHudTimer) clearTimeout(_contactHudTimer);
+      _contactHudTimer = setTimeout(() => {
+        el.setAttribute('visible', false);
+        el.setAttribute('text', 'value', '');
+      }, CONTACT_HUD_DURATION_MS);
+    }
+
     // Custom component to create dynamic physics colliders for bones
     AFRAME.registerComponent("bone-collider-system", {
       schema: {
-        bones: { type: 'array', default: ['mixamorigLeftFoot', 'mixamorigRightFoot', 'mixamorigLeftHand', 'mixamorigRightHand'] },
+        bones: { type: 'array', default: ['mixamorigLeftFoot63', 'mixamorigRightFoot58', 'mixamorigLeftHand35', 'mixamorigRightHand11', 'mixamorigHead6'] },
         radius: { type: 'number', default: 0.15 }
       },
       init: function () {
@@ -1071,7 +1135,8 @@
                   colliderEl.setAttribute('body', {
                     type: 'kinematic',
                     shape: 'sphere',
-                    sphereRadius: this.data.radius
+                    sphereRadius: this.data.radius,
+                    emitCollisionEvents: true
                   });
 
                   // Visual debug mesh (separate from physics body for clarity)
@@ -1093,17 +1158,34 @@
                     // Check if collided with player body part
                     const playerBodyPart = otherEl.getAttribute('data-body-part');
                     if (playerBodyPart) {
+                      console.log('[COLLISION]', {
+                        time: new Date().toISOString(),
+                        attackerBone: boneName,
+                        attackerName: friendlyName,
+                        targetBodyPart: playerBodyPart,
+                        targetElId: otherEl.id || null,
+                        score: gameScore?.score ?? null,
+                        combo: gameScore?.combo ?? null,
+                        hits: combatFeedback?.hitCount ?? null,
+                        blocks: combatFeedback?.blockCount ?? null
+                      });
+
                       // Model hit the player!
                       if (playerBodyPart === 'head') {
                         // Critical hit - model struck player's head
                         combatFeedback.registerHit(friendlyName, 'head');
                       } else if (playerBodyPart.includes('Hand')) {
                         // Player blocked with hand
-                        combatFeedback.registerBlock(friendlyName, playerBodyPart.replace('left', 'left ').replace('right', 'right ').replace('Hand', 'hand'));
+                        combatFeedback.registerBlock(
+                          friendlyName,
+                          playerBodyPart.replace('left', 'left ').replace('right', 'right ').replace('Hand', 'hand')
+                        );
                       } else {
                         // Hit other body part
                         combatFeedback.registerHit(friendlyName, playerBodyPart);
                       }
+
+                      showContactHUD();
 
                       // Visual feedback on collider
                       colliderEl.setAttribute('material', 'color', 'yellow');
@@ -1314,6 +1396,8 @@
         entity.removeAttribute('bone-collider-system');
       }
 
+      entity.setAttribute('bone-collider-system', '');
+
       entity.setAttribute("src", move.id);
 
       // Re-add collider system after model loads
@@ -1522,4 +1606,4 @@
   </script>
 </body>
 
-</html>
+</html>ml>
