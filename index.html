@@ -1592,6 +1592,20 @@
     if (leftHand) attachControllerEvents(leftHand);
     if (rightHand) attachControllerEvents(rightHand);
 
+    // --- KEYBOARD DEBUG CONTROLS ---
+    // Press "B" to cycle animations/models (useful when no VR controllers are connected).
+    // Note: disabled during Roda mode to avoid fighting the timer-driven sequence.
+    window.addEventListener('keydown', (e) => {
+      if (e.repeat) return;
+      if (e.key && e.key.toLowerCase() === 'b') {
+        if (state.showingSummary) return;
+        if (state.isRodaModeActive) return;
+
+        // Cycle to the next move within the current move type (defensive/offensive).
+        updateModel(state.currentMoveType, false);
+      }
+    });
+
     // Cleanup on page unload to prevent memory leaks
     window.addEventListener('beforeunload', () => {
       if (state.rodaInterval) {
