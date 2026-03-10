@@ -1400,7 +1400,9 @@
       if (isRodaMode) {
         move = getRandomMove(moveType);
       } else {
-        move = getNextSequentialMove(moveType);
+        //move = getNextSequentialMove(moveType);
+        moveType = Math.random() < 0.5 ? 'offensive' : 'defensive';
+        move = getRandomMove(moveType);
       }      
       // Update move title (shorter format for new UI)      
       if (moveTitleText) {
