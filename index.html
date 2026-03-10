@@ -1265,6 +1265,11 @@
       updateModel('defensive');
     }, { once: true });
 
+    entity.addEventListener('animation-finished', () => {
+      // DEBUG: play animations in sequence for testing purposes
+      updateModel(state.currentMoveType, false);
+    });
+
     // --- GAME FLOW FUNCTIONS ---
 
     function startGame() {
@@ -1413,17 +1418,37 @@
       const yRotation = state.isFacingAway ? FACING_AWAY_ROTATION : DEFAULT_MODEL_ROTATION;
       entity.setAttribute("rotation", `0 ${yRotation} 0`);
 
+      console.log(`[MODEL UPDATE] moveType=${moveType}, move=${move.title}, clip=${move.clip}, isRodaMode=${isRodaMode}`);
+      
+      isAdvancingAnimation = true;
       playMoveClip(move.clip);
     }
 
     function playMoveClip(clipName) {
-      if (!isModelReady) return;
-
       const diff = DIFFICULTY[gameData.currentDifficulty];
-      entity.setAttribute(
-        'animation-mixer',
-        `clip: ${clipName}; crossFadeDuration: 0.35; timeScale: ${diff.animationSpeed}; loop: repeat`
-      );
+      const mixerComponent = entity.components['animation-mixer'];
+      const mesh = entity.getObject3D('mesh');
+
+      if (mixerComponent && mixerComponent.mixer && mesh && mesh.animations) {
+        const clip = mesh.animations.find(animationClip => animationClip.name === clipName);
+
+        if (clip) {
+          const action = mixerComponent.mixer.clipAction(clip, mixerComponent.model || mesh);
+
+          action.reset();
+          action.paused = false;
+          action.enabled = true;
+        }
+      }
+
+      const mixerValue = `clip: ${clipName};
+                      crossFadeDuration: 0.7;
+                      timeScale: ${diff.animationSpeed};
+                      loop: once;
+                      clampWhenFinished: true`;
+
+      isAdvancingAnimation = true;
+      entity.setAttribute('animation-mixer', mixerValue);
     }
 
     // --- RODA MODE FUNCTIONS ---
