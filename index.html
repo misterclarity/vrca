@@ -1373,10 +1373,41 @@
 
     // --- MODEL UPDATE FUNCTIONS ---
 
+    let pendingTransitionMove = null;
+
+    function isGingaMove(move) {
+      return move.clip === 'Ginga1' || move.clip === 'Ginga2';
+    }
+
+    function getRandomGingaMove() {
+      const gingaMoves = moveData.defensive.filter(isGingaMove);
+      const randomIndex = Math.floor(Math.random() * gingaMoves.length);
+      return { ...gingaMoves[randomIndex], type: 'defensive' };
+    }
+
     function getRandomMove(moveType) {
-      const moves = moveData[moveType];
-      const randomIndex = Math.floor(Math.random() * moves.length);
-      return moves[randomIndex];
+      if (pendingTransitionMove) {
+        const transitionMove = pendingTransitionMove;
+        pendingTransitionMove = null;
+        return transitionMove;
+      }
+
+      const sourceMoves = moveType === 'defensive'
+        ? moveData.defensive.filter(move => !isGingaMove(move))
+        : moveData[moveType];
+
+      const randomIndex = Math.floor(Math.random() * sourceMoves.length);
+      const selectedMove = sourceMoves[randomIndex];
+
+      if (!selectedMove) {
+        return null;
+      }
+
+      if (!isGingaMove(selectedMove)) {
+        pendingTransitionMove = getRandomGingaMove();
+      }
+
+      return { ...selectedMove, type: moveType };
     }
 
     function getNextSequentialMove(moveType) {
@@ -1403,6 +1434,8 @@
         //move = getNextSequentialMove(moveType);
         moveType = Math.random() < 0.5 ? 'offensive' : 'defensive';
         move = getRandomMove(moveType);
+        // const moves = moveData['offensive'];
+        // move = moves[0];
       }      
       // Update move title (shorter format for new UI)      
       if (moveTitleText) {
@@ -1422,7 +1455,6 @@
 
       console.log(`[MODEL UPDATE] moveType=${moveType}, move=${move.title}, clip=${move.clip}, isRodaMode=${isRodaMode}`);
       
-      isAdvancingAnimation = true;
       playMoveClip(move.clip);
     }
 
@@ -1444,7 +1476,7 @@
       }
 
       const mixerValue = `clip: ${clipName};
-                      crossFadeDuration: 0.7;
+                      crossFadeDuration: 0.5;
                       timeScale: ${diff.animationSpeed};
                       loop: once;
                       clampWhenFinished: true`;
