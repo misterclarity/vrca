@@ -23,11 +23,7 @@
 <body>
   <a-scene vr-mode-ui="enabled: true" physics="debug: true; gravity: 0 -9.8 0;">
     <a-assets>
-      <a-asset-item id="ginga1" src="assets/Ginga1.glb"></a-asset-item>
-      <a-asset-item id="macaco" src="assets/Macaco%20Side.glb"></a-asset-item>
-      <a-asset-item id="troca" src="assets/Troca.glb"></a-asset-item>
-      <a-asset-item id="martelo3" src="assets/Martelo3.glb"></a-asset-item>
-      <a-asset-item id="ginga&compasso" src="assets/ginga%26compasso.glb"></a-asset-item>
+      <a-asset-item id="capoeiraModel" src="assets/model.glb"></a-asset-item>
       <audio id="audio" src="assets/Luna.ogg"></audio>
     </a-assets>
 
@@ -321,8 +317,14 @@
     </a-entity>
 
     <a-entity id="modelContainer">
-      <a-gltf-model id="model" src="#ginga1" scale="0.01 0.01 0.01" position="0 0 -2" rotation="0 0 0"
-        animation-mixer="timeScale: 1" log-bones>
+      <a-gltf-model
+        id="model"
+        src="#capoeiraModel"
+        scale="0.01 0.01 0.01"
+        position="0 0 -2"
+        rotation="0 0 0"
+        animation-mixer="clip: Ginga1; crossFadeDuration: 0.35; timeScale: 1"
+        log-bones>
       </a-gltf-model>
     </a-entity>
 
@@ -387,13 +389,13 @@
 
     const moveData = {
       defensive: [
-        { id: "#ginga1", title: "Ginga" },
-        { id: "#macaco", title: "Macaco (Monkey Move)" },
-        { id: "#troca", title: "Troca (Exchange)" },
+        { clip: "Ginga1", title: "Ginga" },
+        { clip: "Macaco Side", title: "Macaco (Monkey Move)" },
+        { clip: "Troca", title: "Troca (Exchange)" },
       ],
       offensive: [
-        { id: "#martelo3", title: "Martelo (Hammer Kick)" },
-        { id: "#ginga&compasso", title: "Compasso (Compass Kick)" },
+        { clip: "Martelo3", title: "Martelo (Hammer Kick)" },
+        { clip: "ginga&compasso", title: "Compasso (Compass Kick)" },
       ],
     };
 
@@ -1040,18 +1042,6 @@
           if (this.el.body) {
             this.el.body.position.set(this.worldPos.x, this.worldPos.y, this.worldPos.z);
           }
-
-          // Debug once per second
-          // const now = Date.now();
-          // if (now - this._lastDebugLog > 1000) {
-          //   this._lastDebugLog = now;
-          //   console.log('[player-collider:tick]', 'head', {
-          //     x: +this.worldPos.x.toFixed(3),
-          //     y: +this.worldPos.y.toFixed(3),
-          //     z: +this.worldPos.z.toFixed(3),
-          //     hasBody: !!this.el.body
-          //   });
-          // }
         }
         // Hand colliders automatically follow the controller via oculus-touch-controls
         // Just sync physics body position
@@ -1258,6 +1248,18 @@
       }
     });
 
+    entity.addEventListener('model-loaded', () => {
+      isModelReady = true;
+
+      const mesh = entity.getObject3D('mesh');
+      if (mesh && mesh.animations) {
+        console.log('Available animations:', mesh.animations.map((clip) => clip.name));
+      }
+
+      entity.setAttribute('bone-collider-system', '');
+      updateModel('defensive');
+    }, { once: true });
+
     // --- GAME FLOW FUNCTIONS ---
 
     function startGame() {
@@ -1389,28 +1391,11 @@
         move = getRandomMove(moveType);
       } else {
         move = getNextSequentialMove(moveType);
-      }
-
-      // Remove old collider system if exists
-      if (entity.components['bone-collider-system']) {
-        entity.removeAttribute('bone-collider-system');
-      }
-
-      entity.setAttribute('bone-collider-system', '');
-
-      entity.setAttribute("src", move.id);
-
-      // Re-add collider system after model loads
-      entity.addEventListener('model-loaded', function addColliders() {
-        entity.setAttribute('bone-collider-system', '');
-        entity.removeEventListener('model-loaded', addColliders);
-      }, { once: true });
-
-      // Update move title (shorter format for new UI)
+      }      
+      // Update move title (shorter format for new UI)      
       if (moveTitleText) {
         moveTitleText.setAttribute('text', 'value', move.title);
       }
-
       // Update instruction based on move type
       if (instructionText) {
         instructionText.setAttribute(
@@ -1422,10 +1407,19 @@
 
       const yRotation = state.isFacingAway ? FACING_AWAY_ROTATION : DEFAULT_MODEL_ROTATION;
       entity.setAttribute("rotation", `0 ${yRotation} 0`);
+
+      playMoveClip(move.clip);
     }
 
-    // Set initial model for display on the welcome screen
-    updateModel(state.currentMoveType);
+    function playMoveClip(clipName) {
+      if (!isModelReady) return;
+
+      const diff = DIFFICULTY[gameData.currentDifficulty];
+      entity.setAttribute(
+        'animation-mixer',
+        `clip: ${clipName}; crossFadeDuration: 0.35; timeScale: ${diff.animationSpeed}; loop: repeat`
+      );
+    }
 
     // --- RODA MODE FUNCTIONS ---
 
@@ -1620,4 +1614,4 @@
   </script>
 </body>
 
-</html>ml>
+</html>
