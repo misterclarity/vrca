@@ -1209,6 +1209,10 @@
         };
 
         this.el.addEventListener('model-loaded', this.onModelLoaded);
+
+        if (this.el.getObject3D('mesh')) {
+          this.onModelLoaded();
+        }
       },
       tick: function () {
         if (!this.colliders.length) return;
