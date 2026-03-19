@@ -316,12 +316,12 @@
       </a-entity>
     </a-entity>
 
-    <a-entity id="modelContainer">
+    <a-entity id="modelContainer" position="0 0 -2">
       <a-gltf-model
         id="model"
         src="#capoeiraModel"
         scale="1 1 1"
-        position="0 0 -2"
+        position="0 0 0"
         rotation="0 0 0"
         animation-mixer="clip: Ginga1; crossFadeDuration: 0.35; timeScale: 1"
         log-bones>
@@ -378,6 +378,7 @@
     const rightHand = document.getElementById("rightHand");
     const welcomeScreen = document.getElementById("welcomeScreen");
     const statsPanel = document.getElementById("statsPanel");
+    const modelContainer = document.getElementById("modelContainer");
     const hitsText = document.getElementById("hitsText");
     const blocksText = document.getElementById("blocksText");
     const bestComboText = document.getElementById("bestComboText");
@@ -389,15 +390,44 @@
 
     const moveData = {
       defensive: [
-        { clip: "Ginga1", title: "Ginga" },
-        { clip: "Ginga2", title: "Ginga" },
-        { clip: "Macaco", title: "Macaco (Monkey Move)" },
-        //{ clip: "Troca1", title: "Troca (Exchange)" }, Leave Troca out for now
+        {
+          clip: "Ginga1",
+          title: "Ginga",
+          startPosition: "0 0 -2.2",
+          startRotation: "0 0 0",
+          startTime: 0
+        },
+        {
+          clip: "Ginga2",
+          title: "Ginga",
+          startPosition: "0 0 -2.2",
+          startRotation: "0 0 0",
+          startTime: 0
+        },
+        {
+          clip: "Macaco",
+          title: "Macaco (Monkey Move)",
+          startPosition: "0 0 -2",
+          startRotation: "0 0 0",
+          startTime: 0
+        }
       ],
       offensive: [
-        { clip: "Martelo", title: "Martelo (Hammer Kick)" },
-        { clip: "ginga&compasso", title: "Compasso (Compass Kick)" },
-      ],
+        {
+          clip: "Martelo",
+          title: "Martelo (Hammer Kick)",
+          startPosition: "0 0 -1.9",
+          startRotation: "0 0 0",
+          startTime: 0
+        },
+        {
+          clip: "ginga&compasso",
+          title: "Compasso (Compass Kick)",
+          startPosition: "0 0 -2",
+          startRotation: "0 0 0",
+          startTime: 0
+        }
+      ]
     };
 
     // --- STATE ---
@@ -1452,6 +1482,12 @@
 
       const yRotation = state.isFacingAway ? FACING_AWAY_ROTATION : DEFAULT_MODEL_ROTATION;
       entity.setAttribute("rotation", `0 ${yRotation} 0`);
+      modelContainer.setAttribute("animation__move", {
+        property: "position",
+        to: move.startPosition || "0 0 -2",
+        dur: 500,
+        easing: "easeInOutQuad"
+      });
 
       console.log(`[MODEL UPDATE] moveType=${moveType}, move=${move.title}, clip=${move.clip}, isRodaMode=${isRodaMode}`);
       
