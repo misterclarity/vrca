@@ -72,6 +72,7 @@
       currentOffensiveIndex: OFFENSIVE_START_INDEX,
       isRodaModeActive: false,
       isSparMode: false,
+      useStrategist: false,
       isChallengeMode: false,
       rodaInterval: null,
       timeLeft: DEFAULT_RODA_TIME,

@@ -13,6 +13,8 @@
   <script src="src/clip-player.js"></script>
   <!-- Reactive opponent (Spar mode). Registered before scene init. -->
   <script src="src/opponent-ai.js"></script>
+  <!-- LLM strategist (slow tier) steering opponent-ai. -->
+  <script src="src/spar-strategist.js"></script>
   <title>Capoeira VR Trainer</title>
   <style>
     .a-dialog-text {
@@ -31,13 +33,19 @@
     <b style="color:#ffd93d">Desktop controls</b><br>
     <b>Space</b> start &nbsp; <b>1/2/3</b> difficulty<br>
     <b>W A S D</b> move &nbsp; drag mouse to look<br>
-    <b>J</b> attack &nbsp; <b>K</b> defensive &nbsp; <b>R</b> roda &nbsp; <b>F</b> spar<br>
-    <span style="color:#ff8f8f"><b>F</b> = reactive opponent (it faces/attacks you)</span><br>
+    <b>J</b> attack &nbsp; <b>K</b> defensive &nbsp; <b>R</b> roda &nbsp; <b>F</b> spar &nbsp; <b>G</b> AI<br>
+    <span style="color:#ff8f8f"><b>F</b> reactive opponent &nbsp; <b>G</b> LLM strategist (http only)</span><br>
     <b>Shift</b> slow-mo &nbsp; <b>T</b> turn &nbsp; <b>H</b> help &nbsp; <b>E</b> end<br>
     <span style="color:#9fb3c8">Walk in with W so your kicks/blocks reach the opponent.</span>
   </div>
 
-  <a-scene vr-mode-ui="enabled: true" desktop-fallback>
+  <!-- Mestre voice (LLM coaching comment). -->
+  <div id="mestreSay" style="position:fixed;left:50%;top:14px;transform:translateX(-50%);
+    z-index:9999;font-family:system-ui,sans-serif;font-size:15px;font-style:italic;color:#ffd93d;
+    background:rgba(13,27,42,.82);padding:8px 16px;border-radius:20px;max-width:80vw;
+    text-align:center;display:none;pointer-events:none"></div>
+
+  <a-scene vr-mode-ui="enabled: true" desktop-fallback spar-strategist>
     <a-assets>
       <!-- Textured opponent mesh (loaded once); animations are lazy external clips. -->
       <a-asset-item id="opponent" src="assets/opponent.glb"></a-asset-item>

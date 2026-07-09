@@ -266,6 +266,22 @@
       }
     }
 
+    // Toggle the LLM strategist (slow tier) that steers opponent-ai. Requires
+    // Spar mode; only reachable over http (mixed content blocks it on https).
+    function toggleStrategist() {
+      if (!state.isGameStarted || state.showingSummary) return;
+      state.useStrategist = !state.useStrategist;
+      if (state.useStrategist && !state.isSparMode) toggleSparMode(); // needs spar
+      const say = document.getElementById('mestreSay');
+      if (say) {
+        say.style.display = state.useStrategist ? 'block' : 'none';
+        if (state.useStrategist) say.textContent = '— mestre is watching…';
+      }
+      if (modeText && state.isSparMode) {
+        modeText.setAttribute('text', 'value', state.useStrategist ? 'SPAR + AI' : 'SPAR MODE');
+      }
+    }
+
     // --- INPUT HANDLERS ---
 
     function handleGripDown() {
@@ -325,10 +341,12 @@
           }
         });
 
-        // Y button - Hard difficulty (menu only)
+        // Y button - Hard difficulty (menu) / toggle LLM strategist (in Spar)
         controller.addEventListener("ybuttondown", () => {
           if (!state.isGameStarted && !state.showingSummary) {
             setDifficulty('hard');
+          } else if (state.isGameStarted && !state.showingSummary) {
+            toggleStrategist();
           }
         });
       } else if (controller.id === "rightHand") {

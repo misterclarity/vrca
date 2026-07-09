@@ -27,6 +27,9 @@ AFRAME.registerComponent('opponent-ai', {
     this.nextAt = 0;
     this.flipLevel = false;   // set when the player blocks, to change level next
     this.wasActive = false;
+    // Optional high-level plan from the LLM strategist (slow tier). Rules run
+    // fine without it; when present it biases cadence/level and can queue a combo.
+    this.plan = { aggression: 0.5, levelBias: null, queue: [] };
 
     this.pools = {
       high: ['martelo', 'meia-lua-de-frente', 'meia-lua-de-compasso', 'armada-to-esquiva',
@@ -51,6 +54,17 @@ AFRAME.registerComponent('opponent-ai', {
   active: function () {
     return typeof state !== 'undefined' && state.isSparMode &&
       state.isGameStarted && !state.showingSummary;
+  },
+
+  // Called by the spar-strategist (LLM). Validated + clamped; safe to ignore.
+  applyPlan: function (plan) {
+    if (!plan || typeof plan !== 'object') return;
+    if (typeof plan.aggression === 'number') this.plan.aggression = Math.max(0, Math.min(1, plan.aggression));
+    if (plan.levelBias === 'low' || plan.levelBias === 'high' || plan.levelBias === 'mixed') this.plan.levelBias = plan.levelBias;
+    if (Array.isArray(plan.nextSequence)) {
+      const moves = (this.cp && this.cp.moves) || {};
+      this.plan.queue = plan.nextSequence.filter((s) => typeof s === 'string' && moves[s]).slice(0, 6);
+    }
   },
 
   pick: function (arr) { return arr[Math.floor(Math.random() * arr.length)]; },
@@ -96,20 +110,30 @@ AFRAME.registerComponent('opponent-ai', {
 
     const speed = (DIFFICULTY && gameData && DIFFICULTY[gameData.currentDifficulty])
       ? DIFFICULTY[gameData.currentDifficulty].animationSpeed : 1;
-    const gap = (1400 + Math.random() * 1200) / speed;
+    const a = this.plan.aggression; // 0..1: higher = faster + fewer feints
+    const gap = (1400 + Math.random() * 1200) / speed * (1.3 - a * 0.8);
     this.nextAt = t + gap;
+
+    // Follow the strategist's queued combo when in range.
+    if (this.plan.queue.length && dist <= this.data.farRange) {
+      this.cp.playMove(this.plan.queue.shift());
+      return;
+    }
 
     let pool;
     if (dist > this.data.farRange) {
       pool = this.pools.entry;
     } else if (dist < this.data.closeRange) {
       pool = this.pools.close;
-    } else if (Math.random() < 0.18) {
+    } else if (Math.random() < 0.18 * (1 - a * 0.6)) {
       pool = this.pools.evade;
     } else {
+      // Aim away from the guard, biased by the strategist's levelBias.
       let high = this.guardHigh();
+      if (this.plan.levelBias === 'low') high = true;       // guard-high -> we go low
+      else if (this.plan.levelBias === 'high') high = false;
       if (this.flipLevel) { high = !high; this.flipLevel = false; }
-      pool = high ? this.pools.low : this.pools.high; // attack away from the guard
+      pool = high ? this.pools.low : this.pools.high;
     }
     this.cp.playMove(this.pick(pool));
   },
