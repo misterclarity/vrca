@@ -3,7 +3,7 @@
     "slug": "arm-stretch-dance",
     "title": "Arm stretch dance",
     "file": "assets/clips/arm-stretch-dance.glb",
-    "type": "defensive"
+    "type": "exclude"
   },
   {
     "slug": "armada-or-meia-lua-de-costas",
@@ -75,7 +75,7 @@
     "slug": "burpee",
     "title": "Burpee",
     "file": "assets/clips/burpee.glb",
-    "type": "defensive"
+    "type": "exclude"
   },
   {
     "slug": "chapa",
@@ -147,7 +147,7 @@
     "slug": "ginga",
     "title": "Ginga",
     "file": "assets/clips/ginga.glb",
-    "type": "defensive"
+    "type": "idle"
   },
   {
     "slug": "ginga-com-balanca",
@@ -171,13 +171,13 @@
     "slug": "jump-push-up",
     "title": "Jump push up",
     "file": "assets/clips/jump-push-up.glb",
-    "type": "defensive"
+    "type": "exclude"
   },
   {
     "slug": "leg-stretch-dance",
     "title": "Leg stretch dance",
     "file": "assets/clips/leg-stretch-dance.glb",
-    "type": "defensive"
+    "type": "exclude"
   },
   {
     "slug": "macaco",
@@ -303,7 +303,7 @@
     "slug": "pike-walk",
     "title": "Pike walk",
     "file": "assets/clips/pike-walk.glb",
-    "type": "defensive"
+    "type": "exclude"
   },
   {
     "slug": "ponteira",
@@ -375,7 +375,7 @@
     "slug": "situps",
     "title": "Situps",
     "file": "assets/clips/situps.glb",
-    "type": "defensive"
+    "type": "exclude"
   },
   {
     "slug": "troca-de-pe",

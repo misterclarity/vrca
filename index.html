@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" href="https://glitch.com/favicon.ico" />
-  <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
+  <script src="https://aframe.io/releases/1.8.0/aframe.min.js"></script>
   <script src="https://unpkg.com/aframe-environment-component@1.5.x/dist/aframe-environment-component.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.6.1/dist/aframe-extras.min.js"></script>
   <script src="https://unpkg.com/aframe-rounded@1.0.3/dist/aframe-rounded.min.js"></script>
@@ -332,10 +332,10 @@
       geometry="primitive: sphere; radius: 0.15"
       material="color: blue; opacity: 0.3; transparent: true" visible="false"></a-entity>
 
-    <a-entity id="leftHand" oculus-touch-controls="hand: left" data-body-part="leftHand">
+    <a-entity id="leftHand" meta-touch-controls="hand: left" data-body-part="leftHand">
       <a-sphere radius="0.08" material="color: green; opacity: 0.3; transparent: true" visible="false"></a-sphere>
     </a-entity>
-    <a-entity id="rightHand" oculus-touch-controls="hand: right" data-body-part="rightHand">
+    <a-entity id="rightHand" meta-touch-controls="hand: right" data-body-part="rightHand">
       <a-sphere radius="0.08" material="color: green; opacity: 0.3; transparent: true" visible="false"></a-sphere>
     </a-entity>
 
@@ -383,19 +383,26 @@
     const statusIcon = document.getElementById("statusIcon");
     const combatFeedbackPanel = document.getElementById("combatFeedbackPanel");
 
-    // Moves reference clip slugs from assets/moves.json (played via clip-player).
-    // Slice 1 keeps the original 5-move set; Slice 2 loads the full manifest.
+    // Moves reference clip slugs from assets/moves.json (played via clip-player),
+    // grouped by curated category. Populated async before gameplay; a small
+    // fallback keeps things working if the manifest is slow/unavailable.
     const moveData = {
-      defensive: [
-        { slug: "ginga", title: "Ginga" },
-        { slug: "macaco", title: "Macaco (Monkey Move)" },
-        { slug: "troca-de-pe", title: "Troca (Exchange)" },
-      ],
-      offensive: [
-        { slug: "martelo", title: "Martelo (Hammer Kick)" },
-        { slug: "meia-lua-de-compasso", title: "Compasso (Compass Kick)" },
-      ],
+      offensive: [{ slug: "martelo", title: "Martelo" }],
+      defensive: [{ slug: "troca-de-pe", title: "Troca" }],
     };
+
+    const movesReady = fetch("assets/moves.json")
+      .then((r) => r.json())
+      .then((list) => {
+        const off = [], def = [];
+        list.forEach((m) => {
+          if (m.type === "offensive") off.push({ slug: m.slug, title: m.title });
+          else if (m.type === "defensive") def.push({ slug: m.slug, title: m.title });
+        });
+        if (off.length) moveData.offensive = off;
+        if (def.length) moveData.defensive = def;
+      })
+      .catch((e) => console.error("[moves] manifest load failed", e));
 
     // --- STATE ---
     let state = {
@@ -880,9 +887,9 @@
 
       triggerHaptics: function (hand, intensity = 0.8, duration = 100) {
         const controller = hand === 'left' ? leftHand : rightHand;
-        if (!controller || !controller.components['oculus-touch-controls']) return;
+        if (!controller || !controller.components['meta-touch-controls']) return;
 
-        const gamepad = controller.components['oculus-touch-controls'].controller;
+        const gamepad = controller.components['meta-touch-controls'].controller;
         if (gamepad && gamepad.hapticActuators && gamepad.hapticActuators.length > 0) {
           gamepad.hapticActuators[0].pulse(intensity, duration);
         }
