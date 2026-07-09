@@ -1,0 +1,386 @@
+[
+  {
+    "slug": "arm-stretch-dance",
+    "title": "Arm stretch dance",
+    "file": "assets/clips/arm-stretch-dance.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "armada-or-meia-lua-de-costas",
+    "title": "Armada or Meia-lua de costas",
+    "file": "assets/clips/armada-or-meia-lua-de-costas.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "armada-to-esquiva",
+    "title": "Armada to Esquiva",
+    "file": "assets/clips/armada-to-esquiva.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "au",
+    "title": "Aú",
+    "file": "assets/clips/au.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "au-batido",
+    "title": "Aú batido",
+    "file": "assets/clips/au-batido.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "au-de-coluna",
+    "title": "Aú de coluna",
+    "file": "assets/clips/au-de-coluna.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "au-giratoria",
+    "title": "Aú giratória",
+    "file": "assets/clips/au-giratoria.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "au-sem-mao",
+    "title": "Aú sem mão",
+    "file": "assets/clips/au-sem-mao.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "au-sideways",
+    "title": "Aú sideways",
+    "file": "assets/clips/au-sideways.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "au-to-role",
+    "title": "Aú to Role",
+    "file": "assets/clips/au-to-role.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "backflip",
+    "title": "Backflip",
+    "file": "assets/clips/backflip.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "bencao",
+    "title": "Benção",
+    "file": "assets/clips/bencao.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "burpee",
+    "title": "Burpee",
+    "file": "assets/clips/burpee.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "chapa",
+    "title": "Chapa",
+    "file": "assets/clips/chapa.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "chapa-from-a-step-back",
+    "title": "Chapa from a step back",
+    "file": "assets/clips/chapa-from-a-step-back.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "chapa-giratoria",
+    "title": "Chapa giratória",
+    "file": "assets/clips/chapa-giratoria.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "chapa-giratoria-pulada",
+    "title": "Chapa giratória pulada",
+    "file": "assets/clips/chapa-giratoria-pulada.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "chapeu-de-couro",
+    "title": "Chapéu de couro",
+    "file": "assets/clips/chapeu-de-couro.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "cocorinha",
+    "title": "Cocorinha",
+    "file": "assets/clips/cocorinha.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "corrupio",
+    "title": "Corrupio",
+    "file": "assets/clips/corrupio.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "esquiva-de-costas",
+    "title": "Esquiva de costas",
+    "file": "assets/clips/esquiva-de-costas.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "esquiva-de-frente",
+    "title": "Esquiva de frente",
+    "file": "assets/clips/esquiva-de-frente.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "esquiva-lateral",
+    "title": "Esquiva lateral",
+    "file": "assets/clips/esquiva-lateral.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "esquiva-to-role",
+    "title": "Esquiva to Role",
+    "file": "assets/clips/esquiva-to-role.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "ginga",
+    "title": "Ginga",
+    "file": "assets/clips/ginga.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "ginga-com-balanca",
+    "title": "Ginga com balança",
+    "file": "assets/clips/ginga-com-balanca.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "ginga-low",
+    "title": "Ginga low",
+    "file": "assets/clips/ginga-low.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "ginga-variation",
+    "title": "Ginga variation",
+    "file": "assets/clips/ginga-variation.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "jump-push-up",
+    "title": "Jump push up",
+    "file": "assets/clips/jump-push-up.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "leg-stretch-dance",
+    "title": "Leg stretch dance",
+    "file": "assets/clips/leg-stretch-dance.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "macaco",
+    "title": "Macaco",
+    "file": "assets/clips/macaco.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "macaco-lateral",
+    "title": "Macaco lateral",
+    "file": "assets/clips/macaco-lateral.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "mariposa",
+    "title": "Mariposa",
+    "file": "assets/clips/mariposa.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "martelo",
+    "title": "Martelo",
+    "file": "assets/clips/martelo.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "martelo-from-a-step-forward",
+    "title": "Martelo from a step forward",
+    "file": "assets/clips/martelo-from-a-step-forward.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "martelo-no-chao",
+    "title": "Martelo no chão",
+    "file": "assets/clips/martelo-no-chao.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "martelo-no-chao-sem-mao",
+    "title": "Martelo no chão sem mão",
+    "file": "assets/clips/martelo-no-chao-sem-mao.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "martelo-pulado",
+    "title": "Martelo pulado",
+    "file": "assets/clips/martelo-pulado.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "meia-lua-de-coluna",
+    "title": "Meia-lua de coluna",
+    "file": "assets/clips/meia-lua-de-coluna.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "meia-lua-de-compasso",
+    "title": "Meia-lua de compasso",
+    "file": "assets/clips/meia-lua-de-compasso.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "meia-lua-de-compasso-back",
+    "title": "Meia-lua de compasso back",
+    "file": "assets/clips/meia-lua-de-compasso-back.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "meia-lua-de-compasso-double",
+    "title": "Meia-lua de compasso double",
+    "file": "assets/clips/meia-lua-de-compasso-double.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "meia-lua-de-frente",
+    "title": "Meia-lua de frente",
+    "file": "assets/clips/meia-lua-de-frente.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "mma-chapa",
+    "title": "Mma Chapa",
+    "file": "assets/clips/mma-chapa.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "mma-chapa-giratoria",
+    "title": "Mma Chapa giratória",
+    "file": "assets/clips/mma-chapa-giratoria.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "mma-martelo",
+    "title": "Mma Martelo",
+    "file": "assets/clips/mma-martelo.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "mma-martelo-low",
+    "title": "Mma Martelo low",
+    "file": "assets/clips/mma-martelo-low.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "mma-martelo-rotado",
+    "title": "Mma Martelo rotado",
+    "file": "assets/clips/mma-martelo-rotado.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "mola",
+    "title": "Mola",
+    "file": "assets/clips/mola.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "piao-de-cabeca",
+    "title": "Pião de cabeça",
+    "file": "assets/clips/piao-de-cabeca.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "pike-walk",
+    "title": "Pike walk",
+    "file": "assets/clips/pike-walk.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "ponteira",
+    "title": "Ponteira",
+    "file": "assets/clips/ponteira.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "queda-de-rins",
+    "title": "Queda de rins",
+    "file": "assets/clips/queda-de-rins.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "queixada",
+    "title": "Queixada",
+    "file": "assets/clips/queixada.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "queixada-from-a-step-back",
+    "title": "Queixada from a step back",
+    "file": "assets/clips/queixada-from-a-step-back.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "rabo-de-arraia",
+    "title": "Rabo de arraia",
+    "file": "assets/clips/rabo-de-arraia.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "rasteira-de-costas",
+    "title": "Rasteira de costas",
+    "file": "assets/clips/rasteira-de-costas.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "rasteira-de-fronte",
+    "title": "Rasteira de fronte",
+    "file": "assets/clips/rasteira-de-fronte.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "rasteira-em-pe",
+    "title": "Rasteira em pé",
+    "file": "assets/clips/rasteira-em-pe.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "rasteira-meia-lua-de-frente",
+    "title": "Rasteira Meia-lua de frente",
+    "file": "assets/clips/rasteira-meia-lua-de-frente.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "rasteira-rabo-de-arraia",
+    "title": "Rasteira Rabo de arraia",
+    "file": "assets/clips/rasteira-rabo-de-arraia.glb",
+    "type": "offensive"
+  },
+  {
+    "slug": "role",
+    "title": "Role",
+    "file": "assets/clips/role.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "situps",
+    "title": "Situps",
+    "file": "assets/clips/situps.glb",
+    "type": "defensive"
+  },
+  {
+    "slug": "troca-de-pe",
+    "title": "Troca de pé",
+    "file": "assets/clips/troca-de-pe.glb",
+    "type": "defensive"
+  }
+]

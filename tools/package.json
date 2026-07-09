@@ -1,0 +1,13 @@
+{
+  "name": "vrca-tools",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Asset pipeline: convert capoeiraNice Mixamo FBX to GLB.",
+  "scripts": {
+    "convert": "node convert.mjs"
+  },
+  "devDependencies": {
+    "fbx2gltf": "^0.9.7"
+  }
+}

@@ -8,9 +8,9 @@
   <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
   <script src="https://unpkg.com/aframe-environment-component@1.5.x/dist/aframe-environment-component.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.6.1/dist/aframe-extras.min.js"></script>
-  <script
-    src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.2.4/dist/aframe-physics-system.min.js"></script>
   <script src="https://unpkg.com/aframe-rounded@1.0.3/dist/aframe-rounded.min.js"></script>
+  <!-- Local: lazy external-clip player (replaces per-move src swapping) -->
+  <script src="src/clip-player.js"></script>
   <title>Capoeira VR Trainer</title>
   <style>
     .a-dialog-text {
@@ -21,18 +21,15 @@
 </head>
 
 <body>
-  <a-scene vr-mode-ui="enabled: true" physics="debug: true; gravity: 0 -9.8 0;">
+  <a-scene vr-mode-ui="enabled: true">
     <a-assets>
-      <a-asset-item id="ginga1" src="assets/Ginga1.glb"></a-asset-item>
-      <a-asset-item id="macaco" src="assets/Macaco%20Side.glb"></a-asset-item>
-      <a-asset-item id="troca" src="assets/Troca.glb"></a-asset-item>
-      <a-asset-item id="martelo3" src="assets/Martelo3.glb"></a-asset-item>
-      <a-asset-item id="ginga&compasso" src="assets/ginga%26compasso.glb"></a-asset-item>
+      <!-- Textured opponent mesh (loaded once); animations are lazy external clips. -->
+      <a-asset-item id="opponent" src="assets/opponent.glb"></a-asset-item>
       <audio id="audio" src="assets/Luna.ogg"></audio>
     </a-assets>
 
     <a-entity id="cameraRig" position="0 0 0">
-      <a-entity id="camera" camera look-controls wasd-controls="enabled:true;">
+      <a-entity id="camera" camera="active: true" look-controls wasd-controls="enabled:true;" position="0 1.6 0">
         <!-- Screen flash overlay for hit feedback -->
         <a-plane id="screenFlash" position="0 0 -0.5" width="2" height="2"
           material="color: red; opacity: 0; transparent: true; shader: flat; depthTest: false; depthWrite: false"
@@ -321,23 +318,24 @@
     </a-entity>
 
     <a-entity id="modelContainer">
-      <a-gltf-model id="model" src="#ginga1" scale="0.01 0.01 0.01" position="0 0 -2" rotation="0 0 0"
-        animation-mixer="timeScale: 1" log-bones>
+      <a-gltf-model id="model" src="#opponent" scale="0.9 0.9 0.9" position="0 0 -2" rotation="0 0 0"
+        clip-player="idle: ginga" hit-detect>
       </a-gltf-model>
     </a-entity>
 
-    <!-- Floor for physics -->
-    <a-plane static-body position="0 0 0" rotation="-90 0 0" width="20" height="20" color="#7BC8A4"
+    <!-- Floor (visual only; physics removed) -->
+    <a-plane position="0 0 0" rotation="-90 0 0" width="20" height="20" color="#7BC8A4"
       opacity="0.3"></a-plane>
 
-    <!-- Player body colliders for combat detection -->
-    <a-entity id="playerHead" player-collider="bodyPart: head" geometry="primitive: sphere; radius: 0.15"
+    <!-- Player guard points read by hit-detect (no physics bodies) -->
+    <a-entity id="playerHead" follow-camera data-body-part="head"
+      geometry="primitive: sphere; radius: 0.15"
       material="color: blue; opacity: 0.3; transparent: true" visible="false"></a-entity>
 
-    <a-entity id="leftHand" oculus-touch-controls="hand: left" player-collider="bodyPart: leftHand">
+    <a-entity id="leftHand" oculus-touch-controls="hand: left" data-body-part="leftHand">
       <a-sphere radius="0.08" material="color: green; opacity: 0.3; transparent: true" visible="false"></a-sphere>
     </a-entity>
-    <a-entity id="rightHand" oculus-touch-controls="hand: right" player-collider="bodyPart: rightHand">
+    <a-entity id="rightHand" oculus-touch-controls="hand: right" data-body-part="rightHand">
       <a-sphere radius="0.08" material="color: green; opacity: 0.3; transparent: true" visible="false"></a-sphere>
     </a-entity>
 
@@ -385,15 +383,17 @@
     const statusIcon = document.getElementById("statusIcon");
     const combatFeedbackPanel = document.getElementById("combatFeedbackPanel");
 
+    // Moves reference clip slugs from assets/moves.json (played via clip-player).
+    // Slice 1 keeps the original 5-move set; Slice 2 loads the full manifest.
     const moveData = {
       defensive: [
-        { id: "#ginga1", title: "Ginga" },
-        { id: "#macaco", title: "Macaco (Monkey Move)" },
-        { id: "#troca", title: "Troca (Exchange)" },
+        { slug: "ginga", title: "Ginga" },
+        { slug: "macaco", title: "Macaco (Monkey Move)" },
+        { slug: "troca-de-pe", title: "Troca (Exchange)" },
       ],
       offensive: [
-        { id: "#martelo3", title: "Martelo (Hammer Kick)" },
-        { id: "#ginga&compasso", title: "Compasso (Compass Kick)" },
+        { slug: "martelo", title: "Martelo (Hammer Kick)" },
+        { slug: "meia-lua-de-compasso", title: "Compasso (Compass Kick)" },
       ],
     };
 
@@ -999,87 +999,16 @@
     if (document.readyState !== 'loading') combatFeedback.init();
 
     // --- PLAYER COLLIDER COMPONENT ---
-    // Attaches physics body to player's head and hands for collision detection
-    AFRAME.registerComponent("player-collider", {
-      schema: {
-        bodyPart: { type: 'string', default: 'hand' },
-        radius: { type: 'number', default: 0.1 }
-      },
+    // Keeps an entity glued to the camera's world position (player head guard point).
+    AFRAME.registerComponent("follow-camera", {
       init: function () {
         this.camera = document.getElementById('camera');
         this.worldPos = new THREE.Vector3();
-        this._lastDebugLog = 0;
-
-        const r = (this.data.bodyPart === 'head') ? 0.15 : 0.08;
-
-        this.el.setAttribute('body', {
-          type: 'dynamic',
-          mass: 0.001,
-          shape: 'sphere',
-          sphereRadius: r,
-          emitCollisionEvents: true,
-          linearDamping: 0.99,
-          angularDamping: 0.99
-        });
-
-        this.el.classList.add('player-body');
-        this.el.setAttribute('data-body-part', this.data.bodyPart);
-
-        // Debug: confirm the component is actually initializing
-        console.log('[player-collider:init]', this.data.bodyPart, {
-          elId: this.el.id || null,
-          hasBody: !!this.el.body
-        });
       },
       tick: function () {
-        // Head collider follows camera position
-        if (this.data.bodyPart === 'head' && this.camera) {
-          this.camera.object3D.getWorldPosition(this.worldPos);
-          this.el.object3D.position.copy(this.worldPos);
-
-          if (this.el.body) {
-            this.el.body.position.set(this.worldPos.x, this.worldPos.y, this.worldPos.z);
-          }
-
-          // Debug once per second
-          // const now = Date.now();
-          // if (now - this._lastDebugLog > 1000) {
-          //   this._lastDebugLog = now;
-          //   console.log('[player-collider:tick]', 'head', {
-          //     x: +this.worldPos.x.toFixed(3),
-          //     y: +this.worldPos.y.toFixed(3),
-          //     z: +this.worldPos.z.toFixed(3),
-          //     hasBody: !!this.el.body
-          //   });
-          // }
-        }
-        // Hand colliders automatically follow the controller via oculus-touch-controls
-        // Just sync physics body position
-        else if (this.el.body) {
-          this.el.object3D.getWorldPosition(this.worldPos);
-          this.el.body.position.set(this.worldPos.x, this.worldPos.y, this.worldPos.z);
-        }
-      }
-    });
-
-    // Logs all bone names in a loaded glTF model.
-    AFRAME.registerComponent('log-bones', {
-      init: function () {
-        this.el.addEventListener('model-loaded', () => {
-          const obj = this.el.getObject3D('mesh');
-          if (!obj) {
-            console.log('[log-bones] no mesh/object3D found');
-            return;
-          }
-
-          const bones = [];
-          obj.traverse((n) => {
-            if (n && n.isBone) bones.push(n.name || '(unnamed)');
-          });
-
-          bones.sort();
-          console.log(`[log-bones] bone count=${bones.length}`, bones);
-        });
+        if (!this.camera) return;
+        this.camera.object3D.getWorldPosition(this.worldPos);
+        this.el.object3D.position.copy(this.worldPos);
       }
     });
 
@@ -1107,154 +1036,92 @@
       }, CONTACT_HUD_DURATION_MS);
     }
 
-    // Custom component to create dynamic physics colliders for bones
-    AFRAME.registerComponent("bone-collider-system", {
+    // Combat collision WITHOUT a physics engine. Each frame, measure the distance
+    // from the opponent's attacking limbs (feet/hands) to the player's guard points
+    // (head = hit, hands = block). Bones are matched by regex so exports with
+    // different node-index suffixes (mixamorigLeftFoot vs mixamorigLeftFoot63) work.
+    AFRAME.registerComponent("hit-detect", {
       schema: {
-        bones: { type: 'array', default: ['mixamorigLeftFoot63', 'mixamorigRightFoot58', 'mixamorigLeftHand35', 'mixamorigRightHand11', 'mixamorigHead6'] },
-        radius: { type: 'number', default: 0.15 }
+        radius: { type: 'number', default: 0.22 },   // metres
+        cooldown: { type: 'number', default: 400 },   // ms per bone->target pair
       },
       init: function () {
-        this.colliders = [];
-        this.bones = [];
-        this.timeouts = []; // Track timeouts for cleanup
-        this.worldPos = new THREE.Vector3(); // Reuse vector for performance
+        this.attackBones = [];   // { node, label }
+        this.targets = [];       // { el, part }
+        this.worldA = new THREE.Vector3();
+        this.worldB = new THREE.Vector3();
+        this.lastHit = {};
 
-        this.onModelLoaded = () => {
+        const ATTACK = /LeftFoot|RightFoot|LeftHand|RightHand/;
+        const SKIP = /Thumb|Index|Middle|Ring|Pinky|Toe|End/;
+        const label = (n) =>
+          /LeftFoot/.test(n) ? 'Left Kick' :
+          /RightFoot/.test(n) ? 'Right Kick' :
+          /LeftHand/.test(n) ? 'Left Punch' :
+          /RightHand/.test(n) ? 'Right Punch' : n;
+
+        this._collectBones = () => {
           const mesh = this.el.getObject3D('mesh');
-          if (mesh) {
-            this.data.bones.forEach(boneName => {
-              mesh.traverse((node) => {
-                if (node.isBone && node.name === boneName) {
-                  this.bones.push(node);
-
-                  const colliderEl = document.createElement('a-entity');
-
-                  // Setup for C-Frame Physics (Cannon.js)
-                  // type: kinematic = moves by code/animation, affects dynamic bodies
-                  // shape: sphere = explicit shape avoids mesh parsing
-                  colliderEl.setAttribute('body', {
-                    type: 'kinematic',
-                    shape: 'sphere',
-                    sphereRadius: this.data.radius,
-                    emitCollisionEvents: true
-                  });
-
-                  // Visual debug mesh (separate from physics body for clarity)
-                  colliderEl.setAttribute('geometry', { primitive: 'sphere', radius: this.data.radius });
-                  colliderEl.setAttribute('material', { color: 'red', opacity: 0.3, transparent: true });
-                  colliderEl.setAttribute('visible', false); // Hide by default, set to true for debugging
-                  colliderEl.setAttribute('class', `model-collider collider-${boneName}`);
-                  colliderEl.setAttribute('data-bone-name', boneName);
-
-                  // Determine if this is an offensive part (hand/foot)
-                  const isOffensivePart = boneName.includes('Foot') || boneName.includes('Hand');
-                  const friendlyName = this.getFriendlyBoneName(boneName);
-
-                  // Add collision listener for player body parts
-                  const onCollide = (e) => {
-                    const otherEl = e.detail.body.el;
-                    if (!otherEl) return;
-
-                    // Check if collided with player body part
-                    const playerBodyPart = otherEl.getAttribute('data-body-part');
-                    if (playerBodyPart) {
-                      console.log('[COLLISION]', {
-                        time: new Date().toISOString(),
-                        attackerBone: boneName,
-                        attackerName: friendlyName,
-                        targetBodyPart: playerBodyPart,
-                        targetElId: otherEl.id || null,
-                        score: gameScore?.score ?? null,
-                        combo: gameScore?.combo ?? null,
-                        hits: combatFeedback?.hitCount ?? null,
-                        blocks: combatFeedback?.blockCount ?? null
-                      });
-
-                      // Model hit the player!
-                      if (playerBodyPart === 'head') {
-                        // Critical hit - model struck player's head
-                        combatFeedback.registerHit(friendlyName, 'head');
-                      } else if (playerBodyPart.includes('Hand')) {
-                        // Player blocked with hand
-                        combatFeedback.registerBlock(
-                          friendlyName,
-                          playerBodyPart.replace('left', 'left ').replace('right', 'right ').replace('Hand', 'hand')
-                        );
-                      } else {
-                        // Hit other body part
-                        combatFeedback.registerHit(friendlyName, playerBodyPart);
-                      }
-
-                      showContactHUD();
-
-                      // Visual feedback on collider
-                      colliderEl.setAttribute('material', 'color', 'yellow');
-                      colliderEl.setAttribute('visible', true);
-                      const colorTimeout = setTimeout(() => {
-                        colliderEl.setAttribute('material', 'color', 'red');
-                        colliderEl.setAttribute('visible', false);
-                      }, 300);
-                      this.timeouts.push(colorTimeout);
-                    }
-                  };
-
-                  colliderEl.addEventListener('collide', onCollide);
-                  this.el.sceneEl.appendChild(colliderEl);
-                  this.colliders.push({ element: colliderEl, bone: node, boneName: boneName, onCollide: onCollide });
-                }
-              });
-            });
-          }
+          if (!mesh) return;
+          this.attackBones = [];
+          const seen = new Set();
+          mesh.traverse((node) => {
+            if (!node.isBone || !ATTACK.test(node.name) || SKIP.test(node.name)) return;
+            const key = label(node.name);
+            if (seen.has(key)) return;
+            seen.add(key);
+            this.attackBones.push({ node, label: key });
+          });
+          console.log('[hit-detect] attack bones:', this.attackBones.map((b) => b.label));
         };
 
-        // Helper to convert bone names to friendly names
-        this.getFriendlyBoneName = (boneName) => {
-          const nameMap = {
-            'mixamorigLeftFoot': 'Left Kick',
-            'mixamorigRightFoot': 'Right Kick',
-            'mixamorigLeftHand': 'Left Punch',
-            'mixamorigRightHand': 'Right Punch'
-          };
-          return nameMap[boneName] || boneName;
+        this._gatherTargets = () => {
+          this.targets = ['playerHead', 'leftHand', 'rightHand']
+            .map((id) => document.getElementById(id))
+            .filter(Boolean)
+            .map((el) => ({ el, part: el.getAttribute('data-body-part') }));
         };
 
-        this.el.addEventListener('model-loaded', this.onModelLoaded);
+        if (this.el.getObject3D('mesh')) this._collectBones();
+        else this.el.addEventListener('model-loaded', this._collectBones);
+        this._gatherTargets();
       },
+
       tick: function () {
-        if (!this.colliders.length) return;
+        if (!this.attackBones.length) return;
+        if (!this.targets.length) this._gatherTargets();
+        // Only score during an active session.
+        if (!state.isGameStarted || state.showingSummary) return;
 
-        this.colliders.forEach(({ element, bone }) => {
-          if (!element.body) return; // Wait for physics body to initialize
-
-          // Get the bone's current world position
-          bone.getWorldPosition(this.worldPos);
-
-          // 1. Update the visual entity position
-          element.object3D.position.copy(this.worldPos);
-
-          // 2. Update the physics body position
-          // We use .set() to safely transfer data between Three.js and Cannon.js
-          element.body.position.set(this.worldPos.x, this.worldPos.y, this.worldPos.z);
-
-          // Note: We do NOT need to zero velocity here because kinematic bodies
-          // do not accumulate velocity from gravity or collisions.
-        });
+        const now = Date.now();
+        const r = this.data.radius;
+        for (const b of this.attackBones) {
+          b.node.getWorldPosition(this.worldA);
+          for (const t of this.targets) {
+            t.el.object3D.getWorldPosition(this.worldB);
+            if (this.worldA.distanceTo(this.worldB) > r) continue;
+            const key = b.label + '>' + t.part;
+            if (now - (this.lastHit[key] || 0) < this.data.cooldown) continue;
+            this.lastHit[key] = now;
+            this._register(b.label, t.part);
+          }
+        }
       },
+
+      _register: function (attacker, part) {
+        if (part === 'head') {
+          combatFeedback.registerHit(attacker, 'head');
+        } else if (/Hand/i.test(part || '')) {
+          combatFeedback.registerBlock(attacker, part);
+        } else {
+          combatFeedback.registerHit(attacker, part);
+        }
+        showContactHUD();
+        this.el.emit('opponent-contact', { attacker, target: part });
+      },
+
       remove: function () {
-        // Clear all tracked timeouts
-        this.timeouts.forEach(timeout => clearTimeout(timeout));
-        this.timeouts = [];
-
-        // Remove event listener
-        this.el.removeEventListener('model-loaded', this.onModelLoaded);
-
-        // Cleanup collider elements and their listeners
-        this.colliders.forEach(({ element, onCollide }) => {
-          element.removeEventListener('collide', onCollide);
-          if (element.parentNode) element.parentNode.removeChild(element);
-        });
-        this.colliders = [];
-        this.bones = [];
+        this.el.removeEventListener('model-loaded', this._collectBones);
       }
     });
 
@@ -1303,7 +1170,7 @@
 
       // Apply difficulty animation speed
       const diff = DIFFICULTY[gameData.currentDifficulty];
-      entity.setAttribute("animation-mixer", "timeScale", diff.animationSpeed);
+      entity.setAttribute("clip-player", "timeScale", diff.animationSpeed);
 
       // Load first model
       updateModel(state.currentMoveType);
@@ -1391,20 +1258,17 @@
         move = getNextSequentialMove(moveType);
       }
 
-      // Remove old collider system if exists
-      if (entity.components['bone-collider-system']) {
-        entity.removeAttribute('bone-collider-system');
+      // Play the move as a lazy external clip on the persistent opponent mesh.
+      // (hit-detect stays attached to the mesh; no collider re-creation needed.)
+      const cp = entity.components['clip-player'];
+      if (cp) {
+        cp.playMove(move.slug);
+      } else {
+        entity.addEventListener('clip-ready', () => {
+          const c = entity.components['clip-player'];
+          if (c) c.playMove(move.slug);
+        }, { once: true });
       }
-
-      entity.setAttribute('bone-collider-system', '');
-
-      entity.setAttribute("src", move.id);
-
-      // Re-add collider system after model loads
-      entity.addEventListener('model-loaded', function addColliders() {
-        entity.setAttribute('bone-collider-system', '');
-        entity.removeEventListener('model-loaded', addColliders);
-      }, { once: true });
 
       // Update move title (shorter format for new UI)
       if (moveTitleText) {
@@ -1501,14 +1365,14 @@
 
     function handleGripDown() {
       if (!state.isGameStarted || state.showingSummary) return;
-      entity.setAttribute("animation-mixer", "timeScale", SLOW_MOTION_SCALE);
+      entity.setAttribute("clip-player", "timeScale", SLOW_MOTION_SCALE);
     }
 
     function handleGripUp() {
       if (!state.isGameStarted || state.showingSummary) return;
       // Restore to difficulty-based speed
       const diff = DIFFICULTY[gameData.currentDifficulty];
-      entity.setAttribute("animation-mixer", "timeScale", diff.animationSpeed);
+      entity.setAttribute("clip-player", "timeScale", diff.animationSpeed);
     }
 
     function handleTriggerDown() {
