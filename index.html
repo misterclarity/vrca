@@ -21,7 +21,7 @@
 </head>
 
 <body>
-  <a-scene vr-mode-ui="enabled: true">
+  <a-scene vr-mode-ui="enabled: true" desktop-fallback>
     <a-assets>
       <!-- Textured opponent mesh (loaded once); animations are lazy external clips. -->
       <a-asset-item id="opponent" src="assets/opponent.glb"></a-asset-item>
@@ -346,6 +346,7 @@
   <script src="src/config.js"></script>
   <script src="src/systems.js"></script>
   <script src="src/game.js"></script>
+  <script src="src/desktop-fallback.js"></script>
 </body>
 
 </html>ml>

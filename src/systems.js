@@ -573,7 +573,7 @@
     // different node-index suffixes (mixamorigLeftFoot vs mixamorigLeftFoot63) work.
     AFRAME.registerComponent("hit-detect", {
       schema: {
-        radius: { type: 'number', default: 0.22 },   // metres
+        radius: { type: 'number', default: 0.3 },    // metres (forgiving block reach)
         cooldown: { type: 'number', default: 400 },   // ms per bone->target pair
       },
       init: function () {
