@@ -21,6 +21,19 @@
 </head>
 
 <body>
+  <!-- Desktop (non-VR) controls hint. desktop-fallback.js shows/hides this. -->
+  <div id="desktopHint" style="position:fixed;left:12px;bottom:12px;z-index:9999;
+    font-family:system-ui,sans-serif;font-size:13px;line-height:1.5;color:#fff;
+    background:rgba(13,27,42,.82);padding:10px 14px;border-radius:8px;max-width:320px;
+    display:none;pointer-events:none">
+    <b style="color:#ffd93d">Desktop controls</b><br>
+    <b>Space</b> start &nbsp; <b>1/2/3</b> difficulty<br>
+    <b>W A S D</b> move &nbsp; drag mouse to look<br>
+    <b>J</b> attack &nbsp; <b>K</b> defensive &nbsp; <b>R</b> roda<br>
+    <b>Shift</b> slow-mo &nbsp; <b>T</b> turn &nbsp; <b>H</b> help &nbsp; <b>E</b> end<br>
+    <span style="color:#9fb3c8">Walk in with W so your kicks/blocks reach the opponent.</span>
+  </div>
+
   <a-scene vr-mode-ui="enabled: true" desktop-fallback>
     <a-assets>
       <!-- Textured opponent mesh (loaded once); animations are lazy external clips. -->

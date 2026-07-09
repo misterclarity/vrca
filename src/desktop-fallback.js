@@ -30,6 +30,13 @@ AFRAME.registerComponent('desktop-fallback', {
       if (s) s.setAttribute('visible', true);
     });
 
+    // Show the desktop controls hint (hidden in VR).
+    this.hint = document.getElementById('desktopHint');
+    const setHint = () => { if (this.hint) this.hint.style.display = this.el.is('vr-mode') ? 'none' : 'block'; };
+    setHint();
+    this.el.addEventListener('enter-vr', setHint);
+    this.el.addEventListener('exit-vr', setHint);
+
     const has = (fn) => typeof window[fn] === 'function';
     this.onKeyDown = (e) => {
       if (e.repeat) return;
