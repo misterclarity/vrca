@@ -52,6 +52,7 @@ AFRAME.registerComponent('desktop-fallback', {
         case 'j': if (started && !roda && !summary && has('updateModel')) updateModel('offensive'); break;
         case 'k': if (started && !roda && !summary && has('updateModel')) updateModel('defensive'); break;
         case 'r': if (has('toggleRodaMode')) toggleRodaMode(); break;
+        case 'f': if (has('toggleSparMode')) toggleSparMode(); break;
         case 'h': if (has('toggleHelpScreen')) toggleHelpScreen(); break;
         case 't': if (has('handleTriggerDown')) handleTriggerDown(); break;
         case 'e': if (started && !summary && has('endSession')) endSession(); break;

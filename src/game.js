@@ -241,6 +241,31 @@
       }
     }
 
+    // Reactive sparring: the opponent-ai component drives the opponent, facing
+    // and attacking the player based on distance/guard. Mutually exclusive with
+    // roda (which is a fixed timed sequence).
+    function toggleSparMode() {
+      if (!state.isGameStarted || state.showingSummary) return;
+
+      // Leaving roda if it was on.
+      if (!state.isSparMode && state.isRodaModeActive) {
+        state.isRodaModeActive = false;
+        if (timerPanel) timerPanel.setAttribute('visible', false);
+        stopRodaSequence();
+      }
+
+      state.isSparMode = !state.isSparMode;
+
+      if (modeText) {
+        modeText.setAttribute('text', 'value', state.isSparMode ? 'SPAR MODE' : 'TRAINING');
+        modeText.setAttribute('text', 'color', state.isSparMode ? '#ff6b6b' : '#00d4ff');
+      }
+      if (instructionText) {
+        instructionText.setAttribute('text', 'value',
+          state.isSparMode ? 'Read the opponent — block and dodge!' : 'Training mode');
+      }
+    }
+
     // --- INPUT HANDLERS ---
 
     function handleGripDown() {
@@ -321,6 +346,13 @@
             resetToWelcome();
           } else {
             startGame();
+          }
+        });
+
+        // X button - Spar mode (reactive opponent)
+        controller.addEventListener("xbuttondown", () => {
+          if (state.isGameStarted && !state.showingSummary) {
+            toggleSparMode();
           }
         });
 

@@ -11,6 +11,8 @@
   <script src="https://unpkg.com/aframe-rounded@1.0.3/dist/aframe-rounded.min.js"></script>
   <!-- Local: lazy external-clip player (replaces per-move src swapping) -->
   <script src="src/clip-player.js"></script>
+  <!-- Reactive opponent (Spar mode). Registered before scene init. -->
+  <script src="src/opponent-ai.js"></script>
   <title>Capoeira VR Trainer</title>
   <style>
     .a-dialog-text {
@@ -29,7 +31,8 @@
     <b style="color:#ffd93d">Desktop controls</b><br>
     <b>Space</b> start &nbsp; <b>1/2/3</b> difficulty<br>
     <b>W A S D</b> move &nbsp; drag mouse to look<br>
-    <b>J</b> attack &nbsp; <b>K</b> defensive &nbsp; <b>R</b> roda<br>
+    <b>J</b> attack &nbsp; <b>K</b> defensive &nbsp; <b>R</b> roda &nbsp; <b>F</b> spar<br>
+    <span style="color:#ff8f8f"><b>F</b> = reactive opponent (it faces/attacks you)</span><br>
     <b>Shift</b> slow-mo &nbsp; <b>T</b> turn &nbsp; <b>H</b> help &nbsp; <b>E</b> end<br>
     <span style="color:#9fb3c8">Walk in with W so your kicks/blocks reach the opponent.</span>
   </div>
@@ -332,7 +335,7 @@
 
     <a-entity id="modelContainer">
       <a-gltf-model id="model" src="#opponent" scale="0.9 0.9 0.9" position="0 0 -2" rotation="0 0 0"
-        clip-player="idle: ginga" hit-detect>
+        clip-player="idle: ginga" hit-detect opponent-ai>
       </a-gltf-model>
     </a-entity>
 
