@@ -6,14 +6,16 @@
 // fighting on the last plan. Active only in Spar mode with the strategist toggled
 // on (state.useStrategist, key G / VR left-Y).
 //
-// NOTE: browsers block http requests from an https page (mixed content), so this
-// works when the page is served over http (e.g. localhost on your tailnet), not
-// from the https GitHub Pages site. Endpoint is thinking-OFF by default (~1s);
-// set think:true for deeper but slower plans (the async design tolerates it).
+// NOTE: browsers block http requests from an https page (mixed content). The
+// endpoint below is https via Tailscale Serve on linuxllm (tailnet-only), so it
+// works from the https GitHub Pages site AS LONG AS the viewing device is on the
+// tailnet (the ts.net name only resolves there); off-tailnet it fails and the
+// rule engine keeps fighting. Endpoint is thinking-OFF by default (~1s); set
+// think:true for deeper but slower plans (the async design tolerates it).
 
 AFRAME.registerComponent('spar-strategist', {
   schema: {
-    endpoint: { type: 'string', default: 'http://100.119.213.123:8080/v1' },
+    endpoint: { type: 'string', default: 'https://linuxllm.ling-escalator.ts.net:8444/v1' },
     model: { type: 'string', default: 'qwen3.6-27b-mtp' },
     period: { type: 'number', default: 5000 },   // ms between plans
     timeout: { type: 'number', default: 15000 }, // ms per request
