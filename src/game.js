@@ -27,20 +27,8 @@
       // Hide welcome screen
       welcomeScreen.setAttribute('visible', false);
 
-      // Show game UI panels
-      if (moveTitlePanel) moveTitlePanel.setAttribute('visible', true);
-      if (instructionPanel) instructionPanel.setAttribute('visible', true);
-      if (statsPanel) statsPanel.setAttribute('visible', true);
-      if (modePanel) modePanel.setAttribute('visible', true);
-      if (combatFeedbackPanel) combatFeedbackPanel.setAttribute('visible', true);
-      if (scorePanel) scorePanel.setAttribute('visible', true);
-      if (comboPanel) comboPanel.setAttribute('visible', true);
-      if (levelPanel) levelPanel.setAttribute('visible', true);
-
-      // Update instruction text
-      if (instructionText) {
-        instructionText.setAttribute('text', 'value', 'Press joystick for help');
-      }
+      // Show the in-session readouts as one group.
+      hud.showGamePanels(true);
 
       // Update mode indicator
       if (modeText) {
@@ -54,6 +42,10 @@
 
       // Load first model
       updateModel(state.currentMoveType);
+
+      // First-timers get three spaced one-line lessons; everyone else just gets
+      // told where the reference lives, once.
+      if (!gameData.seenOnboarding) hud.startOnboarding();
     }
 
     function endSession() {
@@ -65,6 +57,7 @@
         state.rodaInterval = null;
         state.isRodaModeActive = false;
       }
+      state.isSparMode = false;
 
       // Calculate and save session results
       gameScore.endSession();
@@ -76,34 +69,61 @@
     function resetToWelcome() {
       state.isGameStarted = false;
       state.isRodaModeActive = false;
+      state.isSparMode = false;
       state.isChallengeMode = false;
       state.showingSummary = false;
       state.currentDefensiveIndex = DEFENSIVE_START_INDEX;
       state.currentOffensiveIndex = OFFENSIVE_START_INDEX;
 
       // Hide all game panels
-      const panels = [moveTitlePanel, instructionPanel, statsPanel, modePanel, combatFeedbackPanel, scorePanel, comboPanel, levelPanel, timerPanel, summaryScreen, helpScreen];
-      panels.forEach(p => p && p.setAttribute('visible', false));
+      hud.stopOnboarding();
+      hud.clearCoach();
+      hud.hideControls();
+      hud.showGamePanels(false);
+      [timerPanel, summaryScreen].forEach(p => p && p.setAttribute('visible', false));
 
       // Update and show welcome screen
       gameData.updateWelcomeScreen();
       welcomeScreen.setAttribute('visible', true);
     }
 
-    function toggleHelpScreen() {
-      if (!state.isGameStarted || state.showingSummary) return;
-      state.isHelpVisible = !state.isHelpVisible;
-      helpScreen.setAttribute("visible", state.isHelpVisible);
-
-      // Hide/show other panels when help is visible
-      const panels = [moveTitlePanel, instructionPanel, statsPanel, modePanel, combatFeedbackPanel, scorePanel, comboPanel, levelPanel];
-      panels.forEach(p => p && p.setAttribute('visible', !state.isHelpVisible));
-      if (timerPanel && state.isRodaModeActive) timerPanel.setAttribute('visible', !state.isHelpVisible);
+    // The controls reference is a wrist card now, not a modal — it no longer
+    // blanks the HUD, and it works on the menu screens too.
+    function toggleControlsCard() {
+      hud.toggleControls();
     }
+
+    // Legacy name, kept as its own declaration so it stays a window property
+    // for the feature-detecting callers in desktop-fallback.js.
+    function toggleHelpScreen() {
+      hud.toggleControls();
+    }
+
+    const DIFFICULTY_ORDER = ['easy', 'normal', 'hard'];
 
     function setDifficulty(diff) {
       if (state.isGameStarted) return; // Can't change during game
       gameData.setDifficulty(diff);
+      hud.coach(`Difficulty: ${DIFFICULTY[diff].name}`, '#ffd93d', 2000);
+    }
+
+    // Thumbstick left/right on the welcome screen. Nudging a stick to pick an
+    // option is the expected menu gesture; the per-difficulty buttons the old
+    // build used were both unreachable and unguessable.
+    function stepDifficulty(delta) {
+      if (state.isGameStarted || state.showingSummary) return;
+      const i = DIFFICULTY_ORDER.indexOf(gameData.currentDifficulty);
+      const next = Math.min(DIFFICULTY_ORDER.length - 1, Math.max(0, i + delta));
+      if (next === i) return;
+      setDifficulty(DIFFICULTY_ORDER[next]);
+      pulse('both', 0.3, 40);
+    }
+
+    function cycleDifficulty() {
+      if (state.isGameStarted || state.showingSummary) return;
+      const i = DIFFICULTY_ORDER.indexOf(gameData.currentDifficulty);
+      setDifficulty(DIFFICULTY_ORDER[(i + 1) % DIFFICULTY_ORDER.length]);
+      pulse('both', 0.3, 40);
     }
 
     // --- MODEL UPDATE FUNCTIONS ---
@@ -155,12 +175,13 @@
         moveTitleText.setAttribute('text', 'value', move.title);
       }
 
-      // Update instruction based on move type
-      if (instructionText) {
-        instructionText.setAttribute(
-          'text',
-          'value',
-          moveType === 'offensive' ? 'Dodge or block this attack!' : 'Study this defensive move'
+      // A hint about the current move, which then gets out of the way. While
+      // onboarding is still running, don't talk over it.
+      if (state.isGameStarted && !hud.onboardingTimeout) {
+        hud.coach(
+          moveType === 'offensive' ? 'Block this attack with a hand' : 'Study this defensive move',
+          '#9fb3c8',
+          3000
         );
       }
 
@@ -228,15 +249,13 @@
         modeText.setAttribute('text', 'color', state.isRodaModeActive ? '#ffd93d' : '#00d4ff');
       }
 
+      pulse('left', 0.4, 60);
+
       if (state.isRodaModeActive) {
-        if (instructionText) {
-          instructionText.setAttribute('text', 'value', 'Block the attacks!');
-        }
+        hud.coach('Roda mode — moves change on the timer. Block them!', '#ffd93d');
         startRodaSequence();
       } else {
-        if (instructionText) {
-          instructionText.setAttribute('text', 'value', 'Training mode');
-        }
+        hud.coach('Training mode', '#00d4ff', 2000);
         stopRodaSequence();
       }
     }
@@ -260,17 +279,29 @@
         modeText.setAttribute('text', 'value', state.isSparMode ? 'SPAR MODE' : 'TRAINING');
         modeText.setAttribute('text', 'color', state.isSparMode ? '#ff6b6b' : '#00d4ff');
       }
-      if (instructionText) {
-        instructionText.setAttribute('text', 'value',
-          state.isSparMode ? 'Read the opponent — block and dodge!' : 'Training mode');
-      }
+      pulse('left', 0.5, 80);
+      hud.coach(
+        state.isSparMode
+          ? 'Spar mode — the opponent reads your guard. Block and dodge!'
+          : 'Training mode',
+        state.isSparMode ? '#ff8f8f' : '#00d4ff',
+        state.isSparMode ? COACH_MS : 2000
+      );
     }
 
     // --- INPUT HANDLERS ---
 
+    // Short confirmation buzz so every binding has a felt response, including
+    // the ones whose effect isn't immediately visible (mode toggles).
+    function pulse(hand, intensity = 0.4, duration = 50) {
+      if (hand === 'both') combatFeedback.triggerBothHaptics(intensity, duration);
+      else combatFeedback.triggerHaptics(hand, intensity, duration);
+    }
+
     function handleGripDown() {
       if (!state.isGameStarted || state.showingSummary) return;
       entity.setAttribute("clip-player", "timeScale", SLOW_MOTION_SCALE);
+      hud.coach('Slow motion', '#6bcb77', 0);
     }
 
     function handleGripUp() {
@@ -278,90 +309,154 @@
       // Restore to difficulty-based speed
       const diff = DIFFICULTY[gameData.currentDifficulty];
       entity.setAttribute("clip-player", "timeScale", diff.animationSpeed);
+      hud.clearCoach();
     }
 
+    // Turning the opponent is a study aid, so allow it on the welcome screen
+    // too — that's where you're first looking the model over.
     function handleTriggerDown() {
-      if (!state.isGameStarted || state.showingSummary) return;
+      if (state.showingSummary) return;
+      // In Spar mode opponent-ai owns the facing and would overwrite this on the
+      // next frame, so say why instead of looking like a dead button.
+      if (state.isSparMode) {
+        hud.coach('The opponent turns to face you in Spar mode', '#ff8f8f', 2500);
+        return;
+      }
       state.isFacingAway = !state.isFacingAway;
       const yRotation = state.isFacingAway ? FACING_AWAY_ROTATION : DEFAULT_MODEL_ROTATION;
       entity.setAttribute("rotation", `0 ${yRotation} 0`);
     }
 
+    // "Confirm": start a session, or dismiss the summary.
+    function handleConfirm() {
+      if (state.showingSummary) {
+        gameScore.hideSummary();
+        resetToWelcome();
+      } else if (!state.isGameStarted) {
+        startGame();
+      }
+    }
+
+    function nextOffensive() {
+      if (!state.isGameStarted || state.showingSummary) return;
+      // Roda and Spar drive the opponent themselves; stepping moves by hand
+      // there would fight the mode instead of doing nothing visible.
+      if (state.isRodaModeActive || state.isSparMode) {
+        hud.coach('Manual moves are off in Roda / Spar mode', '#ff8f8f', 2500);
+        return;
+      }
+      updateModel('offensive');
+      pulse('right', 0.3, 40);
+    }
+
+    function nextDefensive() {
+      if (!state.isGameStarted || state.showingSummary) return;
+      if (state.isRodaModeActive || state.isSparMode) {
+        hud.coach('Manual moves are off in Roda / Spar mode', '#ff8f8f', 2500);
+        return;
+      }
+      updateModel('defensive');
+      pulse('right', 0.3, 40);
+    }
+
     // --- EVENT LISTENERS ---
+    //
+    // Quest 2 hardware only reports X/Y on the LEFT controller and A/B on the
+    // RIGHT one (A-Frame's meta-touch-controls button maps say so outright), so
+    // a handler bound to e.g. "abuttondown" on the left hand can never fire.
+    // Bindings below stay on the hand that physically owns each button:
+    //
+    //   LEFT   X  Roda mode          (menu: cycle difficulty)
+    //          Y  Spar mode
+    //   RIGHT  A  next attack        (menu: start / summary: continue)
+    //          B  next defence, hold to end session  (menu: start)
+    //   BOTH   trigger  turn opponent      grip hold  slow motion
+    //          thumbstick press  controls card
+    //          thumbstick left/right  difficulty (menu only)
+
+    // Hold-to-end guard: a tap on B steps the defensive move, holding it ends
+    // the session. Ending on a bare press was too easy to trigger by accident.
+    let endHoldTimer = null;
+    let endHoldPromptTimer = null;
+    let endHoldPrompted = false;
+
+    function beginEndHold() {
+      if (!state.isGameStarted || state.showingSummary) return;
+      cancelEndHold();
+      endHoldPromptTimer = setTimeout(() => {
+        endHoldPromptTimer = null;
+        endHoldPrompted = true;
+        hud.coach('Keep holding [B] to end the session...', '#ff8f8f', 0);
+      }, 250);
+      endHoldTimer = setTimeout(() => {
+        endHoldTimer = null;
+        endHoldPrompted = false;
+        pulse('both', 0.8, 120);
+        hud.clearCoach();
+        endSession();
+      }, END_SESSION_HOLD_MS);
+    }
+
+    function cancelEndHold() {
+      if (endHoldPromptTimer) clearTimeout(endHoldPromptTimer);
+      if (endHoldTimer) clearTimeout(endHoldTimer);
+      endHoldPromptTimer = null;
+      endHoldTimer = null;
+      // Only wipe the prompt if we actually put it up and the hold didn't land.
+      if (endHoldPrompted) {
+        endHoldPrompted = false;
+        hud.clearCoach();
+      }
+    }
 
     function attachControllerEvents(controller) {
+      const isLeft = controller.id === 'leftHand';
+
+      // Shared on both hands, so neither hand is the "wrong" one to reach for.
       controller.addEventListener("gripdown", handleGripDown);
       controller.addEventListener("gripup", handleGripUp);
       controller.addEventListener("triggerdown", handleTriggerDown);
-      controller.addEventListener("thumbstickdown", toggleHelpScreen);
+      controller.addEventListener("thumbstickdown", toggleControlsCard);
 
-      if (controller.id === "leftHand") {
-        // A button - Offensive move (in game) or Easy difficulty (menu)
-        controller.addEventListener("abuttondown", () => {
-          if (!state.isGameStarted && !state.showingSummary) {
-            setDifficulty('easy');
-          } else if (state.isGameStarted && !state.isRodaModeActive && !state.showingSummary) {
-            updateModel("offensive");
-          }
-        });
+      // Thumbstick nudges pick the difficulty on the welcome screen.
+      let stickLatched = false;
+      controller.addEventListener("thumbstickmoved", (e) => {
+        if (state.isGameStarted || state.showingSummary) return;
+        const x = e.detail && e.detail.x;
+        if (typeof x !== 'number') return;
+        if (Math.abs(x) < STICK_DEADZONE) { stickLatched = false; return; }
+        if (stickLatched) return;          // one step per deflection
+        stickLatched = true;
+        stepDifficulty(x > 0 ? 1 : -1);
+      });
 
-        // B button - Defensive move (in game) or end session (in game)
-        controller.addEventListener("bbuttondown", () => {
-          if (state.isGameStarted && !state.showingSummary) {
-            if (state.isRodaModeActive) {
-              endSession(); // End session when in Roda mode
-            } else {
-              updateModel("defensive");
-            }
-          }
-        });
-
-        // X button - Roda mode (in game) or Normal difficulty (menu)
+      if (isLeft) {
+        // X - Roda mode in session, difficulty cycling on the menu.
         controller.addEventListener("xbuttondown", () => {
-          if (!state.isGameStarted && !state.showingSummary) {
-            setDifficulty('normal');
-          } else {
-            toggleRodaMode();
-          }
+          if (state.showingSummary) return;
+          if (state.isGameStarted) toggleRodaMode();
+          else cycleDifficulty();
         });
 
-        // Y button - Hard difficulty (menu only)
+        // Y - Spar mode (reactive opponent).
         controller.addEventListener("ybuttondown", () => {
-          if (!state.isGameStarted && !state.showingSummary) {
-            setDifficulty('hard');
-          }
+          if (state.isGameStarted && !state.showingSummary) toggleSparMode();
         });
-      } else if (controller.id === "rightHand") {
-        // A button - Roda mode toggle
+      } else {
+        // A - confirm on the menus, next attack in session.
         controller.addEventListener("abuttondown", () => {
-          if (state.isGameStarted && !state.showingSummary) {
-            toggleRodaMode();
-          }
+          if (state.isGameStarted && !state.showingSummary) nextOffensive();
+          else handleConfirm();
         });
 
-        // B button - Start game / Continue from summary
+        // B - next defence on tap, end session on hold. Also starts a session
+        // from the menu, so the older "press B to start" habit still works.
         controller.addEventListener("bbuttondown", () => {
-          if (state.showingSummary) {
-            gameScore.hideSummary();
-            resetToWelcome();
-          } else {
-            startGame();
-          }
+          if (!state.isGameStarted || state.showingSummary) { handleConfirm(); return; }
+          nextDefensive();
+          beginEndHold();
         });
-
-        // X button - Spar mode (reactive opponent)
-        controller.addEventListener("xbuttondown", () => {
-          if (state.isGameStarted && !state.showingSummary) {
-            toggleSparMode();
-          }
-        });
-
-        // Y button - End session (in game)
-        controller.addEventListener("ybuttondown", () => {
-          if (state.isGameStarted && !state.showingSummary) {
-            endSession();
-          }
-        });
+        controller.addEventListener("bbuttonup", cancelEndHold);
       }
     }
 
@@ -374,8 +469,10 @@
         clearInterval(state.rodaInterval);
         state.rodaInterval = null;
       }
+      cancelEndHold();
       combatFeedback.cleanup();
       gameScore.cleanup();
+      hud.cleanup();
       gameData.save();
     });
 

@@ -8,6 +8,15 @@
   <script src="https://aframe.io/releases/1.8.0/aframe.min.js"></script>
   <script src="https://unpkg.com/aframe-environment-component@1.5.x/dist/aframe-environment-component.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.6.1/dist/aframe-extras.min.js"></script>
+  <script>
+    // aframe-rounded@1.0.3 predates three.js r144, which renamed
+    // ShapeBufferGeometry to ShapeGeometry. A-Frame 1.8.0 bundles three r184,
+    // so without this alias every <a-rounded> panel throws during init and the
+    // scene never reaches its 'loaded' state — i.e. nothing renders at all.
+    if (window.THREE && !window.THREE.ShapeBufferGeometry) {
+      window.THREE.ShapeBufferGeometry = window.THREE.ShapeGeometry;
+    }
+  </script>
   <script src="https://unpkg.com/aframe-rounded@1.0.3/dist/aframe-rounded.min.js"></script>
   <!-- Local: lazy external-clip player (replaces per-move src swapping) -->
   <script src="src/clip-player.js"></script>
@@ -23,21 +32,21 @@
 </head>
 
 <body>
-  <!-- Desktop (non-VR) controls hint. desktop-fallback.js shows/hides this. -->
+  <!-- Desktop (non-VR) hint. Deliberately a one-line pill: the full key map
+       lives in the in-scene controls card (H), so the flatscreen view stays
+       clear. desktop-fallback.js shows/hides this. -->
   <div id="desktopHint" style="position:fixed;left:12px;bottom:12px;z-index:9999;
-    font-family:system-ui,sans-serif;font-size:13px;line-height:1.5;color:#fff;
-    background:rgba(13,27,42,.82);padding:10px 14px;border-radius:8px;max-width:320px;
+    font-family:system-ui,sans-serif;font-size:12px;line-height:1.4;color:#cfe3f5;
+    background:rgba(13,27,42,.62);padding:6px 11px;border-radius:999px;
     display:none;pointer-events:none">
-    <b style="color:#ffd93d">Desktop controls</b><br>
-    <b>Space</b> start &nbsp; <b>1/2/3</b> difficulty<br>
-    <b>W A S D</b> move &nbsp; drag mouse to look<br>
-    <b>J</b> attack &nbsp; <b>K</b> defensive &nbsp; <b>R</b> roda &nbsp; <b>F</b> spar<br>
-    <span style="color:#ff8f8f"><b>F</b> = reactive opponent (it faces/attacks you)</span><br>
-    <b>Shift</b> slow-mo &nbsp; <b>T</b> turn &nbsp; <b>H</b> help &nbsp; <b>E</b> end<br>
-    <span style="color:#9fb3c8">Walk in with W so your kicks/blocks reach the opponent.</span>
+    <b style="color:#ffd93d">H</b> controls &nbsp;·&nbsp; <b>WASD</b> move &nbsp;·&nbsp; drag to look
   </div>
 
-  <a-scene vr-mode-ui="enabled: true" desktop-fallback>
+  <!-- keyboard-shortcuts enterVR is off because A-Frame binds it to F, which is
+       the Spar-mode key here; pressing F otherwise threw the page into
+       fullscreen/VR mid-session. Escape still exits VR. The headset button from
+       vr-mode-ui remains the way in. -->
+  <a-scene vr-mode-ui="enabled: true" keyboard-shortcuts="enterVR: false" desktop-fallback>
     <a-assets>
       <!-- Textured opponent mesh (loaded once); animations are lazy external clips. -->
       <a-asset-item id="opponent" src="assets/opponent.glb"></a-asset-item>
@@ -51,284 +60,204 @@
           material="color: red; opacity: 0; transparent: true; shader: flat; depthTest: false; depthWrite: false"
           visible="true"></a-plane>
 
-        <!-- Collision/contact HUD text -->
-        <a-entity id="contactText" position="0 0.05 -1"
-          text="value: ; align: center; width: 2.2; color: #FFFFFF; wrapCount: 28" visible="false">
+        <!-- ==================== TOP STATUS BAR ====================
+             Score / combo / level used to be three separate boxes eating the
+             upper third of the view. They are now one slim, low-opacity strip
+             pushed to the top edge so the opponent stays unobstructed. -->
+        <a-entity id="topBar" position="0 0.46 -1.5" visible="false">
+          <a-rounded position="-0.5 -0.055 0.001" width="1.0" height="0.11" radius="0.02" color="#0d1b2a"
+            opacity="0.5"></a-rounded>
+
+          <!-- Score group -->
+          <a-entity id="scorePanel" position="-0.32 0 0.002">
+            <a-entity id="scoreText" position="0 0.016 0"
+              text="value: 0; align: center; width: 0.9; color: #ffd93d; font: mozillavr; anchor: center"></a-entity>
+            <a-entity position="0 -0.032 0"
+              text="value: SCORE; align: center; width: 0.42; color: #7f93a8; font: mozillavr; anchor: center"></a-entity>
+          </a-entity>
+
+          <!-- Combo group (comboBg tints as the combo climbs) -->
+          <a-entity id="comboPanel" position="0 0 0.002">
+            <a-rounded id="comboBg" position="-0.09 -0.045 -0.001" width="0.18" height="0.09" radius="0.015"
+              color="#1a1a2e" opacity="0.0"></a-rounded>
+            <a-entity id="comboText" position="0 0.016 0"
+              text="value: 0x; align: center; width: 0.8; color: #00d4ff; font: mozillavr; anchor: center"></a-entity>
+            <a-entity position="0 -0.032 0"
+              text="value: COMBO; align: center; width: 0.42; color: #7f93a8; font: mozillavr; anchor: center"></a-entity>
+          </a-entity>
+
+          <!-- Level group -->
+          <a-entity id="levelPanel" position="0.32 0 0.002">
+            <a-entity id="levelText" position="0 0.016 0"
+              text="value: Lv.1; align: center; width: 0.7; color: #6bcb77; font: mozillavr; anchor: center"></a-entity>
+            <a-entity id="xpText" position="0 -0.032 0"
+              text="value: 0/100 XP; align: center; width: 0.5; color: #7f93a8; font: mozillavr; anchor: center"></a-entity>
+          </a-entity>
         </a-entity>
 
-        <!-- ==================== TOP HUD AREA ==================== -->
-        <!-- Score Panel - Top Left -->
-        <a-entity id="scorePanel" position="-0.55 0.45 -1.5" visible="false">
-          <a-rounded position="0 0 0.001" width="0.4" height="0.18" radius="0.025" color="#1a1a2e"
-            opacity="0.85"></a-rounded>
-          <a-entity id="scoreText" position="0 0.04 0.002"
-            text="value: 0; align: center; width: 1.5; color: #ffd93d; font: mozillavr; anchor: center"></a-entity>
-          <a-entity position="0 -0.04 0.002"
-            text="value: SCORE; align: center; width: 0.6; color: #888; font: mozillavr; anchor: center"></a-entity>
-        </a-entity>
-
-        <!-- Combo Panel - Top Center -->
-        <a-entity id="comboPanel" position="0 0.45 -1.5" visible="false">
-          <a-rounded id="comboBg" position="0 0 0.001" width="0.35" height="0.18" radius="0.025" color="#1a1a2e"
-            opacity="0.85"></a-rounded>
-          <a-entity id="comboText" position="0 0.04 0.002"
-            text="value: 0x; align: center; width: 1.2; color: #00d4ff; font: mozillavr; anchor: center"></a-entity>
-          <a-entity position="0 -0.04 0.002"
-            text="value: COMBO; align: center; width: 0.6; color: #888; font: mozillavr; anchor: center"></a-entity>
-        </a-entity>
-
-        <!-- Level/XP Panel - Top Right -->
-        <a-entity id="levelPanel" position="0.55 0.45 -1.5" visible="false">
-          <a-rounded position="0 0 0.001" width="0.4" height="0.18" radius="0.025" color="#1a1a2e"
-            opacity="0.85"></a-rounded>
-          <a-entity id="levelText" position="0 0.04 0.002"
-            text="value: Lv.1; align: center; width: 1.0; color: #6bcb77; font: mozillavr; anchor: center"></a-entity>
-          <a-entity id="xpText" position="0 -0.04 0.002"
-            text="value: 0/100 XP; align: center; width: 0.8; color: #888; font: mozillavr; anchor: center"></a-entity>
-        </a-entity>
-
-        <!-- Timer (Roda/Challenge Mode) - Below top panels -->
-        <a-entity id="timerPanel" position="0 0.28 -1.5" visible="false">
-          <a-rounded position="0 0 0.001" width="0.5" height="0.1" radius="0.03" color="#1a1a2e"
-            opacity="0.85"></a-rounded>
-          <a-entity id="timerText" position="0 0 0"
-            text="value: 10s; align: center; width: 1.2; color: #ff6b6b; font: mozillavr; anchor: center"></a-entity>
-        </a-entity>
-
-        <!-- Move Title - Below timer -->
-        <a-entity id="moveTitlePanel" position="0 0.18 -1.5" visible="false">
-          <a-rounded position="0 0 0.001" width="0.8" height="0.08" radius="0.02" color="#1a1a2e"
-            opacity="0.85"></a-rounded>
+        <!-- Move title + Roda timer, sharing one line just under the status bar -->
+        <a-entity id="moveTitlePanel" position="0 0.35 -1.5" visible="false">
           <a-entity id="moveTitleText" position="0 0 0"
-            text="value: Ginga; align: center; width: 1.4; color: #ffd93d; font: mozillavr; anchor: center"></a-entity>
+            text="value: Ginga; align: center; width: 1.1; color: #ffd93d; font: mozillavr; anchor: center"></a-entity>
         </a-entity>
 
-        <!-- Achievement Notification - Top center popup -->
-        <a-entity id="achievementPanel" position="0 0.55 -1.5" visible="false">
-          <a-rounded position="0 0 0.001" width="0.8" height="0.12" radius="0.03" color="#6bcb77"
-            opacity="0.95"></a-rounded>
-          <a-entity position="0 0.02 0.002"
-            text="value: ACHIEVEMENT; align: center; width: 0.8; color: #0d1b2a; font: mozillavr; anchor: center"></a-entity>
-          <a-entity id="achievementText" position="0 -0.025 0.002"
-            text="value: First Block!; align: center; width: 1.0; color: #fff; font: mozillavr; anchor: center"></a-entity>
+        <a-entity id="timerPanel" position="0 0.27 -1.5" visible="false">
+          <a-entity id="timerText" position="0 0 0"
+            text="value: 10s; align: center; width: 0.8; color: #ffd93d; font: mozillavr; anchor: center"></a-entity>
         </a-entity>
 
-        <!-- ==================== COMBAT FEEDBACK (CENTER) ==================== -->
-        <a-entity id="combatFeedbackPanel" position="0 0.05 -1.5" visible="true">
-          <!-- Background panel -->
-          <a-rounded position="0 0 0.001" width="0.7" height="0.22" radius="0.03" color="#0d1b2a"
-            opacity="0.9"></a-rounded>
-          <!-- Status icon circle -->
-          <a-circle id="statusIcon" position="0 0.04 0.002" radius="0.035"
-            material="color: #00d4ff; shader: flat"></a-circle>
-          <!-- Main feedback text -->
-          <a-entity id="collisionText" position="0 -0.03 0.002"
-            text="value: Ready; align: center; width: 1.0; color: #00d4ff; font: mozillavr; anchor: center"></a-entity>
+        <!-- Achievement toast - top center, above the status bar -->
+        <a-entity id="achievementPanel" position="0 0.6 -1.5" visible="false">
+          <a-rounded position="-0.4 -0.05 0.001" width="0.8" height="0.1" radius="0.025" color="#6bcb77"
+            opacity="0.92"></a-rounded>
+          <a-entity id="achievementText" position="0 0 0.002"
+            text="value: First Block!; align: center; width: 0.9; color: #0d1b2a; font: mozillavr; anchor: center"></a-entity>
         </a-entity>
 
-        <!-- ==================== STATS PANEL (Bottom Left) ==================== -->
-        <a-entity id="statsPanel" position="-0.5 -0.35 -1.5" visible="false">
-          <a-rounded position="0 0 0.001" width="0.35" height="0.22" radius="0.025" color="#1a1a2e"
-            opacity="0.85"></a-rounded>
-          <!-- Hits taken -->
-          <a-entity position="-0.12 0.06 0.002">
-            <a-circle radius="0.018" material="color: #ff6b6b; shader: flat"></a-circle>
-            <a-entity id="hitsText" position="0.07 0 0"
-              text="value: 0 Hits; align: left; width: 0.7; color: #ff6b6b; font: mozillavr"></a-entity>
+        <!-- ==================== COMBAT FEEDBACK ====================
+             No panel background any more: hit/block feedback is bare floating
+             text that fades out, so nothing sits permanently over the opponent
+             at eye level. -->
+        <a-entity id="combatFeedbackPanel" position="0 -0.28 -1.5" visible="false">
+          <a-circle id="statusIcon" position="-0.16 0.004 0" radius="0.014"
+            material="color: #00d4ff; shader: flat; transparent: true; opacity: 0"></a-circle>
+          <a-entity id="collisionText" position="0 0 0"
+            text="value: ; align: center; width: 0.85; color: #00d4ff; font: mozillavr; anchor: center; opacity: 1"></a-entity>
+        </a-entity>
+
+        <!-- Coach line: one short, self-dismissing hint. Replaces the old
+             always-on "Press joystick for help" instruction panel. -->
+        <a-entity id="instructionPanel" position="0 -0.38 -1.5" visible="false">
+          <a-entity id="instructionText" position="0 0 0"
+            text="value: ; align: center; width: 0.95; color: #9fb3c8; font: mozillavr; anchor: center; wrapCount: 44"></a-entity>
+        </a-entity>
+
+        <!-- Session stats - bottom left, dimmed to stay peripheral -->
+        <a-entity id="statsPanel" position="-0.7 -0.45 -1.5" visible="false">
+          <a-entity position="-0.11 0.035 0">
+            <a-circle radius="0.012" material="color: #ff6b6b; shader: flat"></a-circle>
+            <a-entity id="hitsText" position="0.035 0 0"
+              text="value: 0 Hits; align: left; anchor: left; width: 0.5; color: #ff8f8f; font: mozillavr; opacity: 0.75"></a-entity>
           </a-entity>
-          <!-- Blocks -->
-          <a-entity position="-0.12 0.015 0.002">
-            <a-circle radius="0.018" material="color: #6bcb77; shader: flat"></a-circle>
-            <a-entity id="blocksText" position="0.07 0 0"
-              text="value: 0 Blocks; align: left; width: 0.7; color: #6bcb77; font: mozillavr"></a-entity>
+          <a-entity position="-0.11 0 0">
+            <a-circle radius="0.012" material="color: #6bcb77; shader: flat"></a-circle>
+            <a-entity id="blocksText" position="0.035 0 0"
+              text="value: 0 Blocks; align: left; anchor: left; width: 0.5; color: #8fdc99; font: mozillavr; opacity: 0.75"></a-entity>
           </a-entity>
-          <!-- Best Combo -->
-          <a-entity position="-0.12 -0.03 0.002">
-            <a-circle radius="0.018" material="color: #00d4ff; shader: flat"></a-circle>
-            <a-entity id="bestComboText" position="0.07 0 0"
-              text="value: Best: 0x; align: left; width: 0.7; color: #00d4ff; font: mozillavr"></a-entity>
+          <a-entity position="-0.11 -0.035 0">
+            <a-circle radius="0.012" material="color: #00d4ff; shader: flat"></a-circle>
+            <a-entity id="bestComboText" position="0.035 0 0"
+              text="value: Best: 0x; align: left; anchor: left; width: 0.5; color: #7fe3ff; font: mozillavr; opacity: 0.75"></a-entity>
           </a-entity>
-          <!-- Label -->
-          <a-entity position="0 -0.08 0.002"
-            text="value: SESSION STATS; align: center; width: 0.5; color: #888; font: mozillavr"></a-entity>
         </a-entity>
 
-        <!-- ==================== MODE & DIFFICULTY (Bottom Right) ==================== -->
-        <a-entity id="modePanel" position="0.5 -0.35 -1.5" visible="false">
-          <a-rounded position="0 0 0.001" width="0.38" height="0.15" radius="0.025" color="#1a1a2e"
-            opacity="0.85"></a-rounded>
-          <a-entity id="modeText" position="0 0.03 0.002"
-            text="value: TRAINING; align: center; width: 0.6; color: #00d4ff; font: mozillavr; anchor: center"></a-entity>
-          <a-entity id="difficultyText" position="0 -0.03 0.002"
-            text="value: Normal; align: center; width: 0.5; color: #ffd93d; font: mozillavr; anchor: center"></a-entity>
-        </a-entity>
-
-        <!-- ==================== INSTRUCTION TEXT (Below center) ==================== -->
-        <a-entity id="instructionPanel" position="0 -0.15 -1.5" visible="false">
-          <a-rounded position="0 0 0.001" width="0.9" height="0.08" radius="0.02" color="#16213e"
-            opacity="0.8"></a-rounded>
-          <a-entity id="instructionText" position="0 0 0.002"
-            text="value: Press joystick for help; align: center; width: 1.2; color: #aaa; font: mozillavr; anchor: center"></a-entity>
-        </a-entity>
-
-        <!-- ==================== HELP SCREEN ==================== -->
-        <a-entity id="helpScreen" position="0 0.1 -1.5" visible="false">
-          <!-- Main background panel -->
-          <a-rounded position="0 0 0.001" width="1.1" height="0.95" radius="0.04" color="#0d1b2a"
-            opacity="0.95"></a-rounded>
-
-          <!-- Header -->
-          <a-rounded position="0 0.4 0.002" width="0.5" height="0.08" radius="0.02" color="#00d4ff"
-            opacity="1"></a-rounded>
-          <a-entity position="0 0.4 0.003"
-            text="value: CONTROLS; align: center; width: 1.0; color: #0d1b2a; font: mozillavr; anchor: center"></a-entity>
-
-          <!-- Training Controls -->
-          <a-entity position="0 0.28 0.002"
-            text="value: TRAINING MODE; align: center; width: 0.7; color: #ffd93d; font: mozillavr"></a-entity>
-          <a-entity position="0 0.2 0.002"
-            text="value: [A] Left: Offensive  [B] Left: Defensive; align: center; width: 0.9; color: #fff; font: mozillavr; wrapCount: 40"></a-entity>
-          <a-entity position="0 0.12 0.002"
-            text="value: [X]/[A]Right: Toggle Roda Mode; align: center; width: 0.9; color: #fff; font: mozillavr; wrapCount: 40"></a-entity>
-
-          <!-- Study Controls -->
-          <a-entity position="0 0.02 0.002"
-            text="value: STUDY TOOLS; align: center; width: 0.7; color: #6bcb77; font: mozillavr"></a-entity>
-          <a-entity position="0 -0.06 0.002"
-            text="value: [Grip] Slow Motion  [Trigger] Rotate; align: center; width: 0.9; color: #fff; font: mozillavr; wrapCount: 40"></a-entity>
-
-          <!-- Session Controls -->
-          <a-entity position="0 -0.16 0.002"
-            text="value: SESSION; align: center; width: 0.7; color: #ff6b6b; font: mozillavr"></a-entity>
-          <a-entity position="0 -0.24 0.002"
-            text="value: [Y] Right: End Session & See Stats; align: center; width: 0.9; color: #fff; font: mozillavr; wrapCount: 40"></a-entity>
-
-          <!-- Divider -->
-          <a-plane position="0 -0.32 0.002" width="0.9" height="0.003" color="#00d4ff" opacity="0.5"></a-plane>
-
-          <!-- Tips -->
-          <a-entity position="0 -0.38 0.002"
-            text="value: Block attacks to score! Build combos!; align: center; width: 0.9; color: #888; font: mozillavr; wrapCount: 40"></a-entity>
-          <a-entity position="0 -0.45 0.002"
-            text="value: Press joystick to close this menu; align: center; width: 0.85; color: #888; font: mozillavr; wrapCount: 35"></a-entity>
+        <!-- Mode + difficulty - bottom right, dimmed -->
+        <a-entity id="modePanel" position="0.7 -0.45 -1.5" visible="false">
+          <a-entity id="modeText" position="0 0.02 0"
+            text="value: TRAINING; align: center; width: 0.55; color: #00d4ff; font: mozillavr; anchor: center; opacity: 0.85"></a-entity>
+          <a-entity id="difficultyText" position="0 -0.025 0"
+            text="value: Normal; align: center; width: 0.42; color: #a99a55; font: mozillavr; anchor: center; opacity: 0.8"></a-entity>
         </a-entity>
 
         <!-- ==================== SESSION SUMMARY SCREEN ==================== -->
         <a-entity id="summaryScreen" position="0 0.1 -1.5" visible="false">
-          <!-- Main background panel -->
-          <a-rounded position="0 0 0.001" width="1.1" height="0.9" radius="0.04" color="#0d1b2a"
+          <a-rounded position="-0.55 -0.45 0.001" width="1.1" height="0.9" radius="0.04" color="#0d1b2a"
             opacity="0.95"></a-rounded>
 
-          <!-- Header -->
-          <a-rounded position="0 0.38 0.002" width="0.6" height="0.08" radius="0.02" color="#ffd93d"
+          <a-rounded position="-0.3 0.34 0.002" width="0.6" height="0.08" radius="0.02" color="#ffd93d"
             opacity="1"></a-rounded>
           <a-entity position="0 0.38 0.003"
             text="value: SESSION COMPLETE; align: center; width: 1.0; color: #0d1b2a; font: mozillavr; anchor: center"></a-entity>
 
-          <!-- Score -->
           <a-entity position="0 0.25 0.002"
-            text="value: FINAL SCORE; align: center; width: 0.7; color: #888; font: mozillavr"></a-entity>
+            text="value: FINAL SCORE; align: center; width: 0.7; color: #888; font: mozillavr; anchor: center"></a-entity>
           <a-entity id="summaryScore" position="0 0.18 0.002"
             text="value: 0; align: center; width: 2.0; color: #ffd93d; font: mozillavr; anchor: center"></a-entity>
 
-          <!-- Stats Grid -->
           <a-entity position="-0.25 0.05 0.002"
-            text="value: Blocks; align: center; width: 0.6; color: #6bcb77; font: mozillavr"></a-entity>
+            text="value: Blocks; align: center; width: 0.6; color: #6bcb77; font: mozillavr; anchor: center"></a-entity>
           <a-entity id="summaryBlocks" position="-0.25 -0.02 0.002"
-            text="value: 0; align: center; width: 0.8; color: #fff; font: mozillavr"></a-entity>
+            text="value: 0; align: center; width: 0.8; color: #fff; font: mozillavr; anchor: center"></a-entity>
 
           <a-entity position="0 0.05 0.002"
-            text="value: Best Combo; align: center; width: 0.6; color: #00d4ff; font: mozillavr"></a-entity>
+            text="value: Best Combo; align: center; width: 0.6; color: #00d4ff; font: mozillavr; anchor: center"></a-entity>
           <a-entity id="summaryBestCombo" position="0 -0.02 0.002"
-            text="value: 0x; align: center; width: 0.8; color: #fff; font: mozillavr"></a-entity>
+            text="value: 0x; align: center; width: 0.8; color: #fff; font: mozillavr; anchor: center"></a-entity>
 
           <a-entity position="0.25 0.05 0.002"
-            text="value: Hits Taken; align: center; width: 0.6; color: #ff6b6b; font: mozillavr"></a-entity>
+            text="value: Hits Taken; align: center; width: 0.6; color: #ff6b6b; font: mozillavr; anchor: center"></a-entity>
           <a-entity id="summaryHits" position="0.25 -0.02 0.002"
-            text="value: 0; align: center; width: 0.8; color: #fff; font: mozillavr"></a-entity>
+            text="value: 0; align: center; width: 0.8; color: #fff; font: mozillavr; anchor: center"></a-entity>
 
-          <!-- Divider -->
           <a-plane position="0 -0.1 0.002" width="0.9" height="0.003" color="#ffd93d" opacity="0.5"></a-plane>
 
-          <!-- XP Earned -->
           <a-entity position="0 -0.18 0.002"
-            text="value: XP EARNED; align: center; width: 0.6; color: #888; font: mozillavr"></a-entity>
+            text="value: XP EARNED; align: center; width: 0.6; color: #888; font: mozillavr; anchor: center"></a-entity>
           <a-entity id="summaryXP" position="0 -0.24 0.002"
             text="value: +0 XP; align: center; width: 1.0; color: #6bcb77; font: mozillavr; anchor: center"></a-entity>
 
-          <!-- Level Progress -->
           <a-entity id="summaryLevel" position="0 -0.32 0.002"
-            text="value: Level 1; align: center; width: 0.8; color: #00d4ff; font: mozillavr"></a-entity>
+            text="value: Level 1; align: center; width: 0.8; color: #00d4ff; font: mozillavr; anchor: center"></a-entity>
 
-          <!-- Continue button -->
-          <a-rounded position="0 -0.42 0.002" width="0.5" height="0.08" radius="0.02" color="#6bcb77"
+          <a-rounded position="-0.25 -0.46 0.002" width="0.5" height="0.08" radius="0.02" color="#6bcb77"
             opacity="1"></a-rounded>
-          <a-entity position="0 -0.42 0.003"
-            text="value: Press [B] Continue; align: center; width: 0.8; color: #0d1b2a; font: mozillavr; anchor: center"></a-entity>
+          <a-entity id="summaryContinueHint" position="0 -0.42 0.003"
+            text="value: [A] Continue; align: center; width: 0.8; color: #0d1b2a; font: mozillavr; anchor: center"></a-entity>
         </a-entity>
 
         <!-- ==================== WELCOME SCREEN ==================== -->
         <a-entity id="welcomeScreen" position="0 0.1 -1.5" visible="true">
-          <!-- Main background panel -->
-          <a-rounded position="0 0 0.001" width="1.1" height="0.85" radius="0.04" color="#0d1b2a"
+          <a-rounded position="-0.55 -0.52 0.001" width="1.1" height="0.95" radius="0.04" color="#0d1b2a"
             opacity="0.95"></a-rounded>
 
-          <!-- Title bar -->
-          <a-rounded position="0 0.35 0.002" width="0.9" height="0.1" radius="0.025" color="#ffd93d"
+          <a-rounded position="-0.45 0.3 0.002" width="0.9" height="0.1" radius="0.025" color="#ffd93d"
             opacity="1"></a-rounded>
           <a-entity position="0 0.35 0.003"
             text="value: CAPOEIRA VR TRAINER; align: center; width: 1.2; color: #0d1b2a; font: mozillavr; anchor: center"></a-entity>
 
-          <!-- Player Level -->
           <a-entity id="welcomeLevelText" position="0 0.22 0.002"
-            text="value: Level 1 - Iniciante; align: center; width: 0.9; color: #6bcb77; font: mozillavr"></a-entity>
+            text="value: Level 1 - Iniciante; align: center; width: 0.9; color: #6bcb77; font: mozillavr; anchor: center"></a-entity>
           <a-entity id="welcomeXPText" position="0 0.15 0.002"
-            text="value: 0/100 XP to next level; align: center; width: 0.8; color: #888; font: mozillavr"></a-entity>
+            text="value: 0/100 XP to next level; align: center; width: 0.8; color: #888; font: mozillavr; anchor: center"></a-entity>
 
-          <!-- Divider -->
           <a-plane position="0 0.08 0.002" width="0.8" height="0.003" color="#ffd93d" opacity="0.5"></a-plane>
 
-          <!-- Difficulty Selection -->
           <a-entity position="0 0.01 0.002"
-            text="value: SELECT DIFFICULTY; align: center; width: 0.7; color: #00d4ff; font: mozillavr"></a-entity>
+            text="value: DIFFICULTY; align: center; width: 0.6; color: #00d4ff; font: mozillavr; anchor: center"></a-entity>
 
-          <!-- Difficulty Options -->
           <a-entity id="diffEasy" position="-0.3 -0.08 0.002">
-            <a-rounded position="0 0 0" width="0.25" height="0.08" radius="0.015" color="#1a1a2e"
+            <a-rounded position="-0.125 -0.04 0" width="0.25" height="0.08" radius="0.015" color="#1a1a2e"
               opacity="0.9"></a-rounded>
             <a-entity position="0 0 0.001"
               text="value: EASY; align: center; width: 0.5; color: #6bcb77; font: mozillavr; anchor: center"></a-entity>
           </a-entity>
           <a-entity id="diffNormal" position="0 -0.08 0.002">
-            <a-rounded position="0 0 0" width="0.25" height="0.08" radius="0.015" color="#ffd93d"
+            <a-rounded position="-0.125 -0.04 0" width="0.25" height="0.08" radius="0.015" color="#ffd93d"
               opacity="1"></a-rounded>
             <a-entity position="0 0 0.001"
               text="value: NORMAL; align: center; width: 0.5; color: #0d1b2a; font: mozillavr; anchor: center"></a-entity>
           </a-entity>
           <a-entity id="diffHard" position="0.3 -0.08 0.002">
-            <a-rounded position="0 0 0" width="0.25" height="0.08" radius="0.015" color="#1a1a2e"
+            <a-rounded position="-0.125 -0.04 0" width="0.25" height="0.08" radius="0.015" color="#1a1a2e"
               opacity="0.9"></a-rounded>
             <a-entity position="0 0 0.001"
               text="value: HARD; align: center; width: 0.5; color: #ff6b6b; font: mozillavr; anchor: center"></a-entity>
           </a-entity>
 
-          <a-entity position="0 -0.16 0.002"
-            text="value: [A] Easy  [X] Normal  [Y] Hard; align: center; width: 0.85; color: #888; font: mozillavr"></a-entity>
+          <a-entity id="welcomeDiffHint" position="0 -0.16 0.002"
+            text="value: Thumbstick left / right to choose; align: center; width: 0.8; color: #888; font: mozillavr; anchor: center"></a-entity>
 
-          <!-- Divider -->
           <a-plane position="0 -0.22 0.002" width="0.8" height="0.003" color="#ffd93d" opacity="0.5"></a-plane>
 
-          <!-- High Score -->
           <a-entity position="0 -0.28 0.002"
-            text="value: HIGH SCORE; align: center; width: 0.5; color: #888; font: mozillavr"></a-entity>
-          <a-entity id="welcomeHighScore" position="0 -0.34 0.002"
-            text="value: 0; align: center; width: 1.2; color: #ffd93d; font: mozillavr; anchor: center"></a-entity>
+            text="value: HIGH SCORE; align: center; width: 0.5; color: #888; font: mozillavr; anchor: center"></a-entity>
+          <a-entity id="welcomeHighScore" position="0 -0.335 0.002"
+            text="value: 0; align: center; width: 1.0; color: #ffd93d; font: mozillavr; anchor: center"></a-entity>
 
-          <!-- Start button indicator -->
-          <a-rounded position="0 -0.43 0.002" width="0.55" height="0.08" radius="0.02" color="#6bcb77"
+          <a-rounded position="-0.275 -0.47 0.002" width="0.55" height="0.08" radius="0.02" color="#6bcb77"
             opacity="1"></a-rounded>
-          <a-entity position="0 -0.43 0.003"
-            text="value: Press [B] to Start; align: center; width: 0.85; color: #0d1b2a; font: mozillavr; anchor: center"></a-entity>
+          <a-entity id="welcomeStartHint" position="0 -0.43 0.003"
+            text="value: Press [A] to Start; align: center; width: 0.85; color: #0d1b2a; font: mozillavr; anchor: center"></a-entity>
         </a-entity>
       </a-entity>
     </a-entity>
@@ -350,6 +279,21 @@
 
     <a-entity id="leftHand" meta-touch-controls="hand: left" data-body-part="leftHand">
       <a-sphere radius="0.08" material="color: green; opacity: 0.3; transparent: true" visible="false"></a-sphere>
+
+      <!-- ==================== CONTROLS CARD ====================
+           Wrist-mounted, not head-locked: raise your left hand to read it and
+           it never covers the opponent or the HUD. Rows are generated from the
+           CONTROLS table in config.js so the labels can never go stale, and
+           they switch between Quest and keyboard names automatically. -->
+      <a-entity id="controlsCard" position="0.02 0.15 0.02" visible="false" billboard-to-camera>
+        <a-rounded id="controlsCardBg" position="-0.15 -0.1 0" width="0.3" height="0.2" radius="0.012"
+          color="#0d1b2a" opacity="0.9"></a-rounded>
+        <a-entity id="controlsCardTitle" position="0 0.06 0.002"
+          text="value: CONTROLS; align: center; width: 0.34; color: #00d4ff; font: mozillavr; anchor: center"></a-entity>
+        <a-entity id="controlsCardRows" position="0 0 0.002"></a-entity>
+        <a-entity id="controlsCardFooter" position="0 -0.14 0.002"
+          text="value: ; align: center; width: 0.26; color: #5d7a91; font: mozillavr; anchor: center"></a-entity>
+      </a-entity>
     </a-entity>
     <a-entity id="rightHand" meta-touch-controls="hand: right" data-body-part="rightHand">
       <a-sphere radius="0.08" material="color: green; opacity: 0.3; transparent: true" visible="false"></a-sphere>
@@ -365,4 +309,4 @@
   <script src="src/desktop-fallback.js"></script>
 </body>
 
-</html>ml>
+</html>

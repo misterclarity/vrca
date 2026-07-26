@@ -14,6 +14,58 @@
     const DEFAULT_MODEL_ROTATION = 0;
     const FACING_AWAY_ROTATION = 180;
 
+    // Hold the right B button this long to end the session (a tap advances the
+    // defensive move instead, so ending can't happen by accident).
+    const END_SESSION_HOLD_MS = 900;
+    // Thumbstick deflection that counts as a menu left/right nudge.
+    const STICK_DEADZONE = 0.6;
+    // How long a coach hint / the controls card stay up before self-dismissing.
+    const COACH_MS = 4000;
+    const CONTROLS_CARD_MS = 12000;
+
+    // --- CONTROL MAP -------------------------------------------------------
+    // Single source of truth for both the bindings in game.js and the text on
+    // the in-world controls card. Quest 2 hardware only reports X/Y on the LEFT
+    // controller and A/B on the RIGHT one, so every label below names the hand
+    // that actually owns the button.
+    const CONTROLS = {
+      menu: {
+        vr: [
+          ['A', 'Start session'],
+          ['Stick < >', 'Difficulty'],
+          ['X', 'Cycle difficulty'],
+          ['Trigger', 'Turn opponent'],
+        ],
+        desktop: [
+          ['Space', 'Start session'],
+          ['1 2 3', 'Difficulty'],
+          ['T', 'Turn opponent'],
+        ],
+      },
+      session: {
+        vr: [
+          ['A', 'Next attack'],
+          ['B', 'Next defence'],
+          ['X', 'Roda mode'],
+          ['Y', 'Spar mode'],
+          ['Trigger', 'Turn opponent'],
+          ['Grip hold', 'Slow motion'],
+          ['B hold', 'End session'],
+        ],
+        desktop: [
+          ['J', 'Next attack'],
+          ['K', 'Next defence'],
+          ['R', 'Roda mode'],
+          ['F', 'Spar mode'],
+          ['T', 'Turn opponent'],
+          ['Shift hold', 'Slow motion'],
+          ['E', 'End session'],
+        ],
+      },
+      // Rendered as the card's footer so the dismiss gesture is always stated.
+      dismiss: { vr: 'thumbstick press to close', desktop: 'H to close' },
+    };
+
     // Welcome screen elements
     const welcomeLevelText = document.getElementById("welcomeLevelText");
     const welcomeXPText = document.getElementById("welcomeXPText");
@@ -26,7 +78,15 @@
     const entity = document.getElementById("model");
     const instructionText = document.getElementById("instructionText");
     const instructionPanel = document.getElementById("instructionPanel");
-    const helpScreen = document.getElementById("helpScreen");
+    const topBar = document.getElementById("topBar");
+    const controlsCard = document.getElementById("controlsCard");
+    const controlsCardBg = document.getElementById("controlsCardBg");
+    const controlsCardTitle = document.getElementById("controlsCardTitle");
+    const controlsCardRows = document.getElementById("controlsCardRows");
+    const controlsCardFooter = document.getElementById("controlsCardFooter");
+    const welcomeStartHint = document.getElementById("welcomeStartHint");
+    const welcomeDiffHint = document.getElementById("welcomeDiffHint");
+    const summaryContinueHint = document.getElementById("summaryContinueHint");
     const moveTitleText = document.getElementById("moveTitleText");
     const moveTitlePanel = document.getElementById("moveTitlePanel");
     const timerText = document.getElementById("timerText");
@@ -78,6 +138,7 @@
       isFacingAway: false,
       isHelpVisible: false,
       currentMoveType: 'defensive',
+      onboardingStep: 0,   // index into ONBOARDING while the first session runs
       colliders: [], // Track dynamic colliders
       sessionStartTime: null,
       showingSummary: false
@@ -141,5 +202,22 @@
       noHits: { id: 'noHits', name: 'Untouchable', description: 'Complete a Roda round without getting hit', unlocked: false },
       level5: { id: 'level5', name: 'Dedicated', description: 'Reach Level 5', unlocked: false },
       hardMode: { id: 'hardMode', name: 'Fearless', description: 'Complete a session on Hard difficulty', unlocked: false }
+    };
+
+    // --- FIRST-RUN ONBOARDING ---
+    // Three short coach lines, one at a time, shown only on a player's first
+    // session. This replaces dumping the whole control list on screen: each line
+    // teaches one thing and then gets out of the way.
+    const ONBOARDING = {
+      vr: [
+        'Right hand: [A] next attack, [B] next defence',
+        'Left hand: [X] Roda, [Y] Spar — the opponent fights back in Spar',
+        'Raise your left hand and press the thumbstick for all controls',
+      ],
+      desktop: [
+        'J = next attack, K = next defence',
+        'R = Roda, F = Spar — the opponent fights back in Spar',
+        'Press H any time for all controls',
+      ],
     };
 

@@ -3,7 +3,8 @@
 // Loaded as an ORDERED classic script at end of <body>: config.js -> systems.js
 // -> game.js. Classic scripts share one global lexical scope and run in order,
 // so top-level const/let/function bindings are visible across the three files.
-// gameData, gameScore, combatFeedback + components (follow-camera-y/follow-camera/hit-detect) + showContactHUD.
+// gameData, gameScore, hud, combatFeedback + components
+// (follow-camera-y/follow-camera/billboard-to-camera/hit-detect).
 
     // --- GAME DATA SYSTEM (localStorage) ---
     const gameData = {
@@ -17,11 +18,14 @@
       bestComboEver: 0,
       achievements: {},
 
+      seenOnboarding: false,
+
       load: function () {
         try {
           const saved = localStorage.getItem('capoeiraVRData');
           if (saved) {
             const data = JSON.parse(saved);
+            this.seenOnboarding = !!data.seenOnboarding;
             this.totalXP = data.totalXP || 0;
             this.currentLevel = data.currentLevel || 1;
             this.highScore = data.highScore || 0;
@@ -41,6 +45,7 @@
       save: function () {
         try {
           localStorage.setItem('capoeiraVRData', JSON.stringify({
+            seenOnboarding: this.seenOnboarding,
             totalXP: this.totalXP,
             currentLevel: this.currentLevel,
             highScore: this.highScore,
@@ -226,12 +231,13 @@
           comboText.setAttribute('text', 'color', color);
         }
 
+        // The combo pill only appears once a combo is worth noticing; below
+        // that it stays fully transparent instead of drawing an empty box.
         if (comboBg && this.combo >= 3) {
-          comboBg.setAttribute('color', this.combo >= 10 ? '#ffd93d' : this.combo >= 5 ? '#6bcb77' : '#1a1a2e');
-          comboBg.setAttribute('opacity', this.combo >= 5 ? '0.95' : '0.85');
+          comboBg.setAttribute('color', this.combo >= 10 ? '#ffd93d' : this.combo >= 5 ? '#6bcb77' : '#00d4ff');
+          comboBg.setAttribute('opacity', this.combo >= 5 ? '0.5' : '0.3');
         } else if (comboBg) {
-          comboBg.setAttribute('color', '#1a1a2e');
-          comboBg.setAttribute('opacity', '0.85');
+          comboBg.setAttribute('opacity', '0');
         }
 
         if (bestComboText) bestComboText.setAttribute('text', 'value', `Best: ${this.bestCombo}x`);
@@ -302,8 +308,11 @@
         state.showingSummary = true;
 
         // Hide game UI
-        const panels = [moveTitlePanel, instructionPanel, statsPanel, modePanel, combatFeedbackPanel, scorePanel, comboPanel, levelPanel, timerPanel];
-        panels.forEach(p => p && p.setAttribute('visible', false));
+        hud.stopOnboarding();
+        hud.clearCoach();
+        hud.hideControls();
+        hud.showGamePanels(false);
+        if (timerPanel) timerPanel.setAttribute('visible', false);
 
         // Update summary screen
         const summaryScore = document.getElementById('summaryScore');
@@ -352,7 +361,245 @@
     const achievementText = document.getElementById("achievementText");
     const summaryScreen = document.getElementById("summaryScreen");
 
+    // --- HUD / COACHING LAYER ---------------------------------------------
+    // One rule drives everything here: nothing stays on screen that isn't
+    // currently telling the player something. Readouts sit at the edges of the
+    // view, hints self-dismiss, and the full control reference rides on the
+    // player's wrist instead of a modal that blanks out the rest of the HUD.
+    const CARD_W = 0.32;
+    const CARD_ROW_H = 0.034;
+    const CARD_TITLE_H = 0.055;
+    const CARD_FOOTER_H = 0.045;
+
+    const hud = {
+      coachTimeout: null,
+      controlsTimeout: null,
+      onboardingTimeout: null,
+      builtFor: null,          // cache key so the card is only rebuilt on change
+
+      isVR: function () {
+        const scene = document.querySelector('a-scene');
+        return !!(scene && scene.is('vr-mode'));
+      },
+
+      // Which control set applies right now.
+      context: function () {
+        return (state.isGameStarted && !state.showingSummary) ? 'session' : 'menu';
+      },
+
+      // --- coach line: one short, self-dismissing hint low in the view ---
+      // Replaces the old permanently-parked "Press joystick for help" strip.
+      coach: function (message, color, ms) {
+        if (!instructionPanel || !instructionText) return;
+        if (this.coachTimeout) clearTimeout(this.coachTimeout);
+        instructionText.setAttribute('text', 'value', message);
+        instructionText.setAttribute('text', 'color', color || '#9fb3c8');
+        instructionPanel.setAttribute('visible', true);
+
+        const life = ms === undefined ? COACH_MS : ms;
+        if (life <= 0) { this.coachTimeout = null; return; }  // 0 = pin it
+        this.coachTimeout = setTimeout(() => {
+          instructionPanel.setAttribute('visible', false);
+          this.coachTimeout = null;
+        }, life);
+      },
+
+      clearCoach: function () {
+        if (this.coachTimeout) clearTimeout(this.coachTimeout);
+        this.coachTimeout = null;
+        if (instructionPanel) instructionPanel.setAttribute('visible', false);
+      },
+
+      // --- wrist controls card ---
+      // Rows are generated from CONTROLS so the reference can never drift from
+      // the actual bindings, and Quest vs keyboard labels are picked per device.
+      buildControls: function () {
+        if (!controlsCardRows) return;
+        const mode = this.isVR() ? 'vr' : 'desktop';
+        const ctx = this.context();
+        const key = ctx + ':' + mode;
+        if (this.builtFor === key) return;
+        this.builtFor = key;
+
+        const rows = CONTROLS[ctx][mode];
+        const h = CARD_TITLE_H + rows.length * CARD_ROW_H + CARD_FOOTER_H;
+
+        while (controlsCardRows.firstChild) {
+          controlsCardRows.removeChild(controlsCardRows.firstChild);
+        }
+
+        rows.forEach(([button, action], i) => {
+          const y = h / 2 - CARD_TITLE_H - (i + 0.5) * CARD_ROW_H;
+
+          const keyEl = document.createElement('a-entity');
+          keyEl.setAttribute('position', `${-CARD_W / 2 + 0.015} ${y} 0`);
+          keyEl.setAttribute('text', {
+            value: button, align: 'left', anchor: 'left', width: 0.14,
+            wrapCount: 15, color: '#ffd93d', font: 'mozillavr'
+          });
+          controlsCardRows.appendChild(keyEl);
+
+          const actionEl = document.createElement('a-entity');
+          actionEl.setAttribute('position', `-0.045 ${y} 0`);
+          actionEl.setAttribute('text', {
+            value: action, align: 'left', anchor: 'left', width: 0.155,
+            wrapCount: 16, color: '#e6eef7', font: 'mozillavr'
+          });
+          controlsCardRows.appendChild(actionEl);
+        });
+
+        if (controlsCardBg) {
+          controlsCardBg.setAttribute('width', CARD_W);
+          controlsCardBg.setAttribute('height', h);
+          controlsCardBg.setAttribute('position', `${-CARD_W / 2} ${-h / 2} 0`);
+        }
+        if (controlsCardTitle) {
+          controlsCardTitle.setAttribute('position', `0 ${h / 2 - 0.03} 0.002`);
+          controlsCardTitle.setAttribute('text', 'value',
+            ctx === 'session' ? 'CONTROLS' : 'CONTROLS - MENU');
+        }
+        if (controlsCardFooter) {
+          controlsCardFooter.setAttribute('position', `0 ${-h / 2 + 0.022} 0.002`);
+          controlsCardFooter.setAttribute('text', 'value', CONTROLS.dismiss[mode]);
+        }
+      },
+
+      // The card rides ~0.4 m from the eye. In VR you raise your hand to it
+      // deliberately; on desktop the guard hands are pinned in front of the
+      // camera, where full size would swallow the screen — shrink it there.
+      applyCardScale: function () {
+        if (!controlsCard) return;
+        const s = this.isVR() ? 1 : 0.5;
+        controlsCard.setAttribute('scale', `${s} ${s} ${s}`);
+      },
+
+      showControls: function () {
+        if (!controlsCard) return;
+        this.buildControls();
+        this.applyCardScale();
+        controlsCard.setAttribute('visible', true);
+        state.isHelpVisible = true;
+
+        // Self-dismissing: a reference card left hanging in the view is exactly
+        // the intrusiveness we're removing, so it times out on its own.
+        if (this.controlsTimeout) clearTimeout(this.controlsTimeout);
+        this.controlsTimeout = setTimeout(() => this.hideControls(), CONTROLS_CARD_MS);
+      },
+
+      hideControls: function () {
+        if (this.controlsTimeout) clearTimeout(this.controlsTimeout);
+        this.controlsTimeout = null;
+        state.isHelpVisible = false;
+        if (controlsCard) controlsCard.setAttribute('visible', false);
+      },
+
+      toggleControls: function () {
+        if (state.isHelpVisible) this.hideControls();
+        else this.showControls();
+      },
+
+      // --- first-run onboarding ---
+      // Three one-line lessons, spaced out, shown once ever. This is what the
+      // old wall-of-text help modal is replaced by for new players.
+      startOnboarding: function () {
+        if (gameData.seenOnboarding) return;
+        state.onboardingStep = 0;
+        this.nextOnboarding();
+      },
+
+      nextOnboarding: function () {
+        this.onboardingTimeout = null;
+        const lines = ONBOARDING[this.isVR() ? 'vr' : 'desktop'];
+        if (state.onboardingStep >= lines.length) {
+          gameData.seenOnboarding = true;
+          gameData.save();
+          return;
+        }
+        this.coach(lines[state.onboardingStep++], '#ffd93d', 5000);
+        this.onboardingTimeout = setTimeout(() => this.nextOnboarding(), 5400);
+      },
+
+      stopOnboarding: function () {
+        if (this.onboardingTimeout) clearTimeout(this.onboardingTimeout);
+        this.onboardingTimeout = null;
+      },
+
+      // Show/hide the in-session readouts as one group.
+      showGamePanels: function (on) {
+        [topBar, moveTitlePanel, statsPanel, modePanel, combatFeedbackPanel]
+          .forEach((p) => p && p.setAttribute('visible', on));
+      },
+
+      // Menu button prompts have to match the device actually in use.
+      refreshPrompts: function () {
+        const vr = this.isVR();
+        if (welcomeStartHint) {
+          welcomeStartHint.setAttribute('text', 'value',
+            vr ? 'Press [A] to Start' : 'Press SPACE to Start');
+        }
+        if (welcomeDiffHint) {
+          welcomeDiffHint.setAttribute('text', 'value',
+            vr ? 'Thumbstick left / right to choose' : 'Press 1 / 2 / 3 to choose');
+        }
+        if (summaryContinueHint) {
+          summaryContinueHint.setAttribute('text', 'value',
+            vr ? '[A] Continue' : 'SPACE Continue');
+        }
+      },
+
+      // Device swap invalidates every label we've rendered.
+      onDeviceChange: function () {
+        this.builtFor = null;
+        this.refreshPrompts();
+        this.applyCardScale();
+        if (state.isHelpVisible) this.buildControls();
+      },
+
+      cleanup: function () {
+        if (this.coachTimeout) clearTimeout(this.coachTimeout);
+        if (this.controlsTimeout) clearTimeout(this.controlsTimeout);
+        this.stopOnboarding();
+      }
+    };
+
+    // Keep prompts/card honest across headset entry and exit.
+    (function wireHudToDevice () {
+      const scene = document.querySelector('a-scene');
+      if (!scene) return;
+      const sync = () => hud.onDeviceChange();
+      scene.addEventListener('enter-vr', sync);
+      scene.addEventListener('exit-vr', sync);
+      if (scene.hasLoaded) hud.refreshPrompts();
+      else scene.addEventListener('loaded', () => hud.refreshPrompts());
+    })();
+
     // --- A-FRAME COMPONENTS ---
+
+    // Turns a wrist-mounted panel to face the player, so the controls card is
+    // readable whatever angle the controller is held at.
+    //
+    // It copies the camera's orientation rather than looking at the camera's
+    // position: that keeps the card parallel to the view plane, so a card held
+    // off to one side stays square instead of skewing into a trapezoid.
+    AFRAME.registerComponent("billboard-to-camera", {
+      init: function () {
+        this.camera = document.getElementById('camera');
+        this.camQuat = new THREE.Quaternion();
+        this.parentQuat = new THREE.Quaternion();
+      },
+      tick: function () {
+        if (!this.camera || !this.el.object3D.visible) return;
+        this.camera.object3D.getWorldQuaternion(this.camQuat);
+        const parent = this.el.object3D.parent;
+        if (parent) {
+          // Cancel the controller's own rotation so the card ignores wrist roll.
+          parent.getWorldQuaternion(this.parentQuat);
+          this.el.object3D.quaternion.copy(this.parentQuat.invert()).multiply(this.camQuat);
+        } else {
+          this.el.object3D.quaternion.copy(this.camQuat);
+        }
+      }
+    });
 
     // Custom component for Y-axis rotation following
     AFRAME.registerComponent("follow-camera-y", {
@@ -396,13 +643,15 @@
         this.updateStatsPanel();
       },
 
+      // Kept subtle on purpose: a 60%-opaque full-view flash reads as a fault,
+      // not as feedback. This is enough to register peripherally.
       triggerScreenFlash: function (color = 'red', duration = 150) {
         if (!this.screenFlash) return;
 
         if (this.flashTimeout) clearTimeout(this.flashTimeout);
 
         this.screenFlash.setAttribute('material', 'color', color);
-        this.screenFlash.setAttribute('material', 'opacity', 0.6);
+        this.screenFlash.setAttribute('material', 'opacity', 0.3);
 
         this.flashTimeout = setTimeout(() => {
           this.screenFlash.setAttribute('material', 'opacity', 0);
@@ -434,10 +683,12 @@
         if (this.iconTimeout) clearTimeout(this.iconTimeout);
 
         statusIcon.setAttribute('material', 'color', color);
+        statusIcon.setAttribute('material', 'opacity', 1);
 
+        // Fade out with the text rather than sitting lit between exchanges.
         this.iconTimeout = setTimeout(() => {
-          statusIcon.setAttribute('material', 'color', '#00d4ff');
-        }, 1500);
+          statusIcon.setAttribute('material', 'opacity', 0);
+        }, 1400);
       },
 
       registerHit: function (attackerPart, targetPart) {
@@ -502,6 +753,9 @@
         this.updateText(`NICE HIT!`, '#00d4ff');
       },
 
+      // Combat feedback is transient text now — it clears completely instead of
+      // idling on "Ready", so between exchanges the view in front of the
+      // opponent is empty.
       updateText: function (message, color) {
         const collisionText = document.getElementById('collisionText');
         if (!collisionText) return;
@@ -512,9 +766,8 @@
         collisionText.setAttribute('text', 'color', color);
 
         this.textTimeout = setTimeout(() => {
-          collisionText.setAttribute('text', 'value', 'Ready');
-          collisionText.setAttribute('text', 'color', '#00d4ff');
-        }, 2000);
+          collisionText.setAttribute('text', 'value', '');
+        }, 1400);
       },
 
       cleanup: function () {
@@ -542,30 +795,6 @@
         this.el.object3D.position.copy(this.worldPos);
       }
     });
-
-    // Contact/collision HUD
-    const CONTACT_HUD_DURATION_MS = 800;
-    const CONTACT_HUD_COOLDOWN_MS = 120;
-    let _contactHudTimer = null;
-    let _lastContactHudAt = 0;
-
-    function showContactHUD() {
-      const now = Date.now();
-      if (now - _lastContactHudAt < CONTACT_HUD_COOLDOWN_MS) return;
-      _lastContactHudAt = now;
-
-      const el = document.getElementById('contactText');
-      if (!el) return;
-
-      el.setAttribute('text', 'value', "CONTACT!");
-      el.setAttribute('visible', true);
-
-      if (_contactHudTimer) clearTimeout(_contactHudTimer);
-      _contactHudTimer = setTimeout(() => {
-        el.setAttribute('visible', false);
-        el.setAttribute('text', 'value', '');
-      }, CONTACT_HUD_DURATION_MS);
-    }
 
     // Combat collision WITHOUT a physics engine. Each frame, measure the distance
     // from the opponent's attacking limbs (feet/hands) to the player's guard points
@@ -647,7 +876,6 @@
         } else {
           combatFeedback.registerHit(attacker, part);
         }
-        showContactHUD();
         this.el.emit('opponent-contact', { attacker, target: part });
       },
 

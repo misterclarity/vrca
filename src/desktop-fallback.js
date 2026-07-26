@@ -1,18 +1,19 @@
-/* global AFRAME, THREE, state, startGame, endSession, resetToWelcome, updateModel,
-   toggleRodaMode, toggleHelpScreen, setDifficulty, handleGripDown, handleGripUp,
-   handleTriggerDown, gameScore */
+/* global AFRAME, THREE, state, hud, startGame, endSession, resetToWelcome, updateModel,
+   toggleRodaMode, toggleSparMode, toggleControlsCard, setDifficulty, handleGripDown,
+   handleGripUp, handleTriggerDown, nextOffensive, nextDefensive, gameScore */
 // desktop-fallback: play the sim on a flatscreen (no VR headset).
 //   - keyboard mapped to the same actions as the Quest controllers
 //   - both hand colliders ride a guard position in front of the camera, so
 //     kicks that reach you register as blocks (dodge by looking/moving away)
 // Disables itself in VR so meta-touch-controls owns the hands there.
 //
-// Keys:
-//   Space/Enter  start game / continue from summary
-//   J            throw offensive move      K   throw defensive move
-//   R            toggle Roda mode          H   toggle help
+// Keys (mirrors the Quest map in game.js; labels live in CONTROLS in config.js):
+//   Space/Enter  start session / continue from summary
+//   J            next attack               K   next defence
+//   R            Roda mode                 F   Spar mode (opponent fights back)
 //   Shift(hold)  slow motion               T   turn opponent around
-//   E            end session               1/2/3  difficulty (menu)
+//   H            controls card             E   end session
+//   1/2/3        difficulty (menu)         W A S D / mouse  move & look
 
 AFRAME.registerComponent('desktop-fallback', {
   init: function () {
@@ -30,7 +31,7 @@ AFRAME.registerComponent('desktop-fallback', {
       if (s) s.setAttribute('visible', true);
     });
 
-    // Show the desktop controls hint (hidden in VR).
+    // Show the desktop hint pill (hidden in VR).
     this.hint = document.getElementById('desktopHint');
     const setHint = () => { if (this.hint) this.hint.style.display = this.el.is('vr-mode') ? 'none' : 'block'; };
     setHint();
@@ -43,17 +44,18 @@ AFRAME.registerComponent('desktop-fallback', {
       const k = e.key.toLowerCase();
       const started = typeof state !== 'undefined' && state.isGameStarted;
       const summary = typeof state !== 'undefined' && state.showingSummary;
-      const roda = typeof state !== 'undefined' && state.isRodaModeActive;
       switch (k) {
         case ' ': case 'enter':
           if (summary) { if (gameScore && gameScore.hideSummary) gameScore.hideSummary(); resetToWelcome(); }
           else if (!started && has('startGame')) startGame();
           e.preventDefault(); break;
-        case 'j': if (started && !roda && !summary && has('updateModel')) updateModel('offensive'); break;
-        case 'k': if (started && !roda && !summary && has('updateModel')) updateModel('defensive'); break;
+        // nextOffensive/nextDefensive carry the mode guards, so Roda and Spar
+        // explain themselves here exactly as they do on the controllers.
+        case 'j': if (has('nextOffensive')) nextOffensive(); break;
+        case 'k': if (has('nextDefensive')) nextDefensive(); break;
         case 'r': if (has('toggleRodaMode')) toggleRodaMode(); break;
         case 'f': if (has('toggleSparMode')) toggleSparMode(); break;
-        case 'h': if (has('toggleHelpScreen')) toggleHelpScreen(); break;
+        case 'h': if (has('toggleControlsCard')) toggleControlsCard(); break;
         case 't': if (has('handleTriggerDown')) handleTriggerDown(); break;
         case 'e': if (started && !summary && has('endSession')) endSession(); break;
         case 'shift': if (has('handleGripDown')) handleGripDown(); break;
