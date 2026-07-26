@@ -51,12 +51,8 @@
     function endSession() {
       if (!state.isGameStarted) return;
 
-      // Stop any active modes
-      if (state.isRodaModeActive) {
-        clearInterval(state.rodaInterval);
-        state.rodaInterval = null;
-        state.isRodaModeActive = false;
-      }
+      // Stop any active modes (roda-clock stops on its own once the flag is off)
+      state.isRodaModeActive = false;
       state.isSparMode = false;
       recenterOpponent();
 
@@ -236,33 +232,53 @@
       }
     }
 
+    // The countdown is driven by the render loop rather than setInterval.
+    // A background tab throttles timers to once a second at best and a sleeping
+    // headset stops delivering them altogether, so an interval either drifts
+    // out of step with the animation or banks a pile of missed ticks and burns
+    // through several rounds the moment you look up again. A-Frame's tick stops
+    // with rendering, so the round simply pauses and resumes where it left off.
+    let rodaIsOffensive = false;
+
     function startRodaSequence() {
-      let isOffensive = Math.random() < 0.5;
-      const rodaTime = DIFFICULTY[gameData.currentDifficulty].rodaTime;
-      state.timeLeft = rodaTime;
+      rodaIsOffensive = Math.random() < 0.5;
+      state.timeLeft = DIFFICULTY[gameData.currentDifficulty].rodaTime;
       updateTimer();
-      updateModel(isOffensive ? "offensive" : "defensive", true);
-
-      state.rodaInterval = setInterval(() => {
-        state.timeLeft--;
-        updateTimer();
-
-        if (state.timeLeft <= 0) {
-          // Check for untouchable achievement (no hits this round)
-          if (combatFeedback.hitCount === 0 && combatFeedback.blockCount > 0) {
-            gameScore.unlockAchievement('noHits');
-          }
-
-          isOffensive = !isOffensive;
-          state.timeLeft = rodaTime;
-          updateModel(isOffensive ? "offensive" : "defensive", true);
-        }
-      }, 1000);
+      updateModel(rodaIsOffensive ? "offensive" : "defensive", true);
     }
 
+    function advanceRodaRound() {
+      // Untouchable: cleared the round without being hit.
+      if (combatFeedback.hitCount === 0 && combatFeedback.blockCount > 0) {
+        gameScore.unlockAchievement('noHits');
+      }
+      rodaIsOffensive = !rodaIsOffensive;
+      state.timeLeft = DIFFICULTY[gameData.currentDifficulty].rodaTime;
+      updateModel(rodaIsOffensive ? "offensive" : "defensive", true);
+    }
+
+    AFRAME.registerComponent('roda-clock', {
+      init: function () { this.acc = 0; },
+      tick: function (time, delta) {
+        if (!state.isRodaModeActive || !state.isGameStarted || state.showingSummary) {
+          this.acc = 0;
+          return;
+        }
+        // Clamp so a single long frame can't bank a pile of missed seconds and
+        // burn through several rounds at once — but only just: clamping tighter
+        // than the tick interval would quietly run the clock slow on any device
+        // dropping frames, rather than merely pausing it.
+        this.acc += Math.min(delta, 1000);
+        while (this.acc >= 1000) {
+          this.acc -= 1000;
+          state.timeLeft--;
+          updateTimer();
+          if (state.timeLeft <= 0) advanceRodaRound();
+        }
+      }
+    });
+
     function stopRodaSequence() {
-      clearInterval(state.rodaInterval);
-      state.rodaInterval = null;
       state.currentDefensiveIndex = DEFENSIVE_START_INDEX;
       state.currentOffensiveIndex = OFFENSIVE_START_INDEX;
       updateModel("defensive", false);
@@ -499,10 +515,6 @@
 
     // Cleanup on page unload to prevent memory leaks
     window.addEventListener('beforeunload', () => {
-      if (state.rodaInterval) {
-        clearInterval(state.rodaInterval);
-        state.rodaInterval = null;
-      }
       cancelEndHold();
       combatFeedback.cleanup();
       gameScore.cleanup();

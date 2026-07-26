@@ -51,7 +51,7 @@
        submitted twice per frame on a headset. A-Frame ignores it where the
        OVR_multiview2 extension is missing; drop the attribute to disable. -->
   <a-scene vr-mode-ui="enabled: true" keyboard-shortcuts="enterVR: false"
-    renderer="multiviewStereo: true" desktop-fallback>
+    renderer="multiviewStereo: true" desktop-fallback roda-clock>
     <a-assets>
       <!-- Textured opponent mesh (loaded once); animations are lazy external clips. -->
       <a-asset-item id="opponent" src="assets/opponent.glb"></a-asset-item>
@@ -59,14 +59,27 @@
     </a-assets>
 
     <a-entity id="cameraRig" position="0 0 0">
-      <!-- hud-overlay: everything parented to the camera draws above the world,
-           so the opponent's limbs can't poke through the head-locked panels. -->
+      <!-- The y=1.6 offset is for the flatscreen view only. A-Frame requests a
+           local-floor reference space, so in VR the headset already reports eye
+           height from the real floor and this offset would stack on top of it,
+           putting the viewpoint about 1.6 m too high. vr-floor-camera zeroes it
+           on enter-vr and restores it on exit, which also makes seated and
+           standing play work without any manual calibration. -->
       <a-entity id="camera" camera="active: true" look-controls wasd-controls="enabled:true;" position="0 1.6 0"
-        hud-overlay>
-        <!-- Screen flash overlay for hit feedback -->
+        vr-floor-camera>
+        <!-- Screen flash overlay for hit feedback. Deliberately outside hudRoot:
+             it should cover the view instantly and not lag behind the head. -->
         <a-plane id="screenFlash" position="0 0 -0.5" width="2" height="2"
           material="color: red; opacity: 0; transparent: true; shader: flat; depthTest: false; depthWrite: false"
           visible="true"></a-plane>
+
+        <!-- Everything below is the HUD proper.
+             hud-overlay draws it above the world so the opponent's limbs can't
+             poke through the panels. lazy-follow lets it trail the head instead
+             of being welded to it: rigidly head-locked UI is uncomfortable over
+             a long session, so the HUD holds still for small movements and
+             eases back to centre once you turn past the dead zone. -->
+        <a-entity id="hudRoot" hud-overlay lazy-follow>
 
         <!-- ==================== TOP STATUS BAR ====================
              Score / combo / level used to be three separate boxes eating the
@@ -275,6 +288,7 @@
           <a-entity id="welcomeStartHint" position="0 -0.43 0.003"
             text="value: Press [A] to Start; align: center; wrapCount: 28; width: 0.85; color: #0d1b2a; font: assets/fonts/capoeira-sdf.json; anchor: center"></a-entity>
         </a-entity>
+        </a-entity><!-- /hudRoot -->
       </a-entity>
     </a-entity>
 

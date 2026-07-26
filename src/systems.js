@@ -662,6 +662,67 @@
       }
     });
 
+    // A-Frame requests a local-floor reference space, so once in VR the headset
+    // reports eye height measured from the real floor. The camera entity's own
+    // y offset — needed for the flatscreen view, where there is no headset to
+    // ask — then stacks on top of it and lifts the viewpoint by that much
+    // again. Drop it in VR and put it back on exit. Doing so is also what makes
+    // seated and standing play work: the player's real height is used, and the
+    // head guard point follows the camera, so contact heights stay honest.
+    AFRAME.registerComponent("vr-floor-camera", {
+      init: function () {
+        const scene = this.el.sceneEl;
+        this.deskY = this.el.getAttribute('position').y;
+        this.onEnter = () => {
+          this.deskY = this.el.getAttribute('position').y;
+          this.el.setAttribute('position', 'y', 0);
+        };
+        this.onExit = () => this.el.setAttribute('position', 'y', this.deskY);
+        scene.addEventListener('enter-vr', this.onEnter);
+        scene.addEventListener('exit-vr', this.onExit);
+        if (scene.is('vr-mode')) this.onEnter();
+      },
+      remove: function () {
+        const scene = this.el.sceneEl;
+        scene.removeEventListener('enter-vr', this.onEnter);
+        scene.removeEventListener('exit-vr', this.onExit);
+      }
+    });
+
+    // Lazy-follow: the HUD trails the head instead of being welded to it.
+    // Rigidly head-locked panels are uncomfortable over a long session — they
+    // never settle, because they move with every micro-adjustment of the neck.
+    // Here the HUD holds its world orientation while the head stays within a
+    // dead zone, then eases back to centre once you turn past it. Position is
+    // still rigid: lag when you walk would be disorienting, lag when you glance
+    // is exactly what we want.
+    AFRAME.registerComponent("lazy-follow", {
+      schema: {
+        deadzone: { type: 'number', default: 6 },   // degrees of free head movement
+        speed: { type: 'number', default: 3.5 },    // catch-up rate once outside it
+        enabled: { type: 'boolean', default: true }
+      },
+      init: function () {
+        this.camera = document.getElementById('camera');
+        this.camQ = new THREE.Quaternion();
+        this.target = new THREE.Quaternion();
+        this.seeded = false;
+      },
+      tick: function (time, delta) {
+        if (!this.data.enabled || !this.camera) return;
+        this.camera.object3D.getWorldQuaternion(this.camQ);
+        if (!this.seeded) { this.target.copy(this.camQ); this.seeded = true; }
+
+        if (this.target.angleTo(this.camQ) > THREE.MathUtils.degToRad(this.data.deadzone)) {
+          const k = Math.min(1, (Math.min(delta, 100) / 1000) * this.data.speed);
+          this.target.slerp(this.camQ, k);
+        }
+        // Local orientation that lands the HUD on `target` in world space.
+        // Identity when the head is centred on it.
+        this.el.object3D.quaternion.copy(this.camQ).invert().multiply(this.target);
+      }
+    });
+
     // Turns a wrist-mounted panel to face the player, so the controls card is
     // readable whatever angle the controller is held at.
     //

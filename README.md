@@ -73,6 +73,9 @@ The interface is built to stay out of the way while you train:
   threshold were dropped instead of shrunk.
 - **Drawn as an overlay** — the head-locked HUD renders above the world, so a
   lunge or a cartwheel can't push the opponent's limbs through a panel.
+- **Lazy-follow** — the HUD trails your head rather than being welded to it. It
+  holds still while you look around within a 6° dead zone, then eases back to
+  centre. Rigidly head-locked panels never settle, which wears over a session.
 
 ## Scoring
 
@@ -128,12 +131,26 @@ them:
   - `billboard-to-camera`: keeps the wrist controls card facing the player.
   - `hud-overlay` / `flat-panel`: draw the HUD above the world and unlit, so it
     neither gets occluded nor picks up the environment's colour cast.
+  - `lazy-follow`: lets the HUD trail the head instead of being welded to it.
+  - `vr-floor-camera`: drops the camera's flatscreen height offset in VR.
+    A-Frame requests a `local-floor` reference space, so the headset already
+    reports eye height from the real floor and the offset would otherwise stack
+    on top of it. This is also what makes seated and standing play work without
+    manual calibration.
+  - `roda-clock`: the Roda countdown, driven by the render loop. A `setInterval`
+    drifts against the animation and banks missed ticks while the headset sleeps,
+    then burns through several rounds at once on wake; a frame-driven clock just
+    pauses and resumes.
   - `desktop-fallback`: keyboard + guard-hand blocking without a headset.
   - `aframe-environment-component` for the setting, `aframe-extras` for animation.
 - **Fonts**: every A-Frame stock font is ASCII-only, which silently dropped
   characters from 18 of the 58 playable move names. `assets/fonts/capoeira-sdf`
   is a DejaVu Sans SDF atlas covering Latin-1, so `Aú`, `Benção` and
   `Chapéu de couro` render properly.
+- **Memory**: `clip-player` keeps the 20 most recently played clips
+  (`maxCachedClips`) and evicts the rest from the mixer. All 58 would otherwise
+  stay parsed in memory for the whole session; evicted clips reload on demand,
+  and the idle and on-screen clips are never candidates.
 - **Assets**: opponent mesh and per-move animation clips under `assets/`.
 
 ---

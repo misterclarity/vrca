@@ -27,6 +27,11 @@ AFRAME.registerComponent('clip-player', {
     // occludes the HUD. Anchor the hips horizontally and keep vertical motion
     // so jumps and crouches still read. Set false for travelling clips.
     lockRootMotion: { type: 'boolean', default: true },
+    // Cap on retained clips. There are 58 moves, and every one ever played
+    // otherwise stays parsed in memory along with its mixer action — a lot of
+    // track data to hold on a standalone headset for moves seen once. Least
+    // recently played are evicted past this; they reload on demand.
+    maxCachedClips: { type: 'number', default: 20 },
   },
 
   init: function () {
@@ -35,6 +40,7 @@ AFRAME.registerComponent('clip-player', {
     this.loader = new THREE.GLTFLoader();
     this.mixer = null;
     this.actions = {};   // slug -> AnimationAction
+    this.lru = [];       // slugs, least recently played first
     this.moves = {};     // slug -> manifest entry
     this.current = null; // active slug
     this.prev = null;
@@ -71,7 +77,7 @@ AFRAME.registerComponent('clip-player', {
   },
 
   _load: async function (slug) {
-    if (this.actions[slug]) return this.actions[slug];
+    if (this.actions[slug]) { this._touch(slug); return this.actions[slug]; }
     const entry = this.moves[slug];
     if (!entry) throw new Error('[clip-player] unknown move: ' + slug);
     const gltf = await this.loader.loadAsync(entry.file);
@@ -81,7 +87,36 @@ AFRAME.registerComponent('clip-player', {
     if (this.data.lockRootMotion) this._lockRoot(clip);
     const action = this.mixer.clipAction(clip);
     this.actions[slug] = action;
+    this._touch(slug);
+    this._evict();
     return action;
+  },
+
+  // Most-recently-played ordering for the cache.
+  _touch: function (slug) {
+    const i = this.lru.indexOf(slug);
+    if (i !== -1) this.lru.splice(i, 1);
+    this.lru.push(slug);
+  },
+
+  // Drop the least recently played clips once over budget. The idle clip and
+  // whatever is on screen are never candidates — uncaching a running action
+  // would cut the animation mid-play.
+  _evict: function () {
+    const keep = this.data.maxCachedClips;
+    if (keep <= 0 || this.lru.length <= keep) return;
+    for (let i = 0; i < this.lru.length && this.lru.length > keep; ) {
+      const slug = this.lru[i];
+      if (slug === this.data.idle || slug === this.current || slug === this.prev) { i++; continue; }
+      const action = this.actions[slug];
+      if (action) {
+        action.stop();
+        this.mixer.uncacheAction(action.getClip(), this.mixer.getRoot());
+        this.mixer.uncacheClip(action.getClip());
+      }
+      delete this.actions[slug];
+      this.lru.splice(i, 1);
+    }
   },
 
   // Zero the hips' horizontal position, leaving Y alone. Anchoring to the

@@ -130,7 +130,6 @@
       isRodaModeActive: false,
       isSparMode: false,
       isChallengeMode: false,
-      rodaInterval: null,
       timeLeft: DEFAULT_RODA_TIME,
       isFacingAway: false,
       isHelpVisible: false,
