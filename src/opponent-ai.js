@@ -27,6 +27,10 @@ AFRAME.registerComponent('opponent-ai', {
     this.nextAt = 0;
     this.flipLevel = false;   // set when the player blocks, to change level next
     this.wasActive = false;
+    // Where the opponent started. tick() advances it toward the player during
+    // Spar, so without this the opponent stays wherever it wandered to and the
+    // next session begins with it off-centre or out of view entirely.
+    this.home = this.el.object3D.position.clone();
 
     this.pools = {
       high: ['martelo', 'meia-lua-de-frente', 'meia-lua-de-compasso', 'armada-to-esquiva',
@@ -51,6 +55,15 @@ AFRAME.registerComponent('opponent-ai', {
   active: function () {
     return typeof state !== 'undefined' && state.isSparMode &&
       state.isGameStarted && !state.showingSummary;
+  },
+
+  // Put the opponent back on its mark. Called when Spar ends, when the session
+  // ends, and on the return to the welcome screen.
+  recenter: function () {
+    this.el.object3D.position.copy(this.home);
+    this.el.setAttribute('rotation', `0 ${
+      (typeof state !== 'undefined' && state.isFacingAway) ? 180 : 0} 0`);
+    this.wasActive = false;
   },
 
   pick: function (arr) { return arr[Math.floor(Math.random() * arr.length)]; },

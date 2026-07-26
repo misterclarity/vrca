@@ -66,6 +66,26 @@ The interface is built to stay out of the way while you train:
   top edge; stats and mode sit dimmed in the bottom corners. Hit and block
   feedback is transient floating text, so the space in front of the opponent
   stays clear.
+- **Sized for the headset** — a Quest 2 resolves roughly 20 pixels per degree,
+  so every HUD string is set to a character width of about 1° at the 1.5 m HUD
+  plane. `wrapCount` is therefore explicit throughout rather than left at
+  A-Frame's default; captions that could only have been rendered below that
+  threshold were dropped instead of shrunk.
+- **Drawn as an overlay** — the head-locked HUD renders above the world, so a
+  lunge or a cartwheel can't push the opponent's limbs through a panel.
+
+## Scoring
+
+A block counts when a hand is inside `handRadius` (0.22 m) of an incoming limb
+**and** actually moving — a guard parked in the path of a kick doesn't score.
+Head contact uses a wider 0.3 m radius. Hits, blocks and landed strikes each
+keep their own cooldown, so two contacts in the same instant both register.
+All three thresholds are `hit-detect` schema properties if you want to retune
+them:
+
+```html
+<a-gltf-model hit-detect="handRadius: 0.22; blockSpeed: 0.15; radius: 0.3">
+```
 
 ## Available Moves
 
@@ -97,12 +117,23 @@ The interface is built to stay out of the way while you train:
 - **Collision**: distance checks between the opponent's attacking bones and the
   player's guard points — no physics engine.
 - **Components**:
-  - `clip-player`: drives one persistent skinned mesh with lazy-loaded external clips.
-  - `opponent-ai`: the reactive opponent behind Spar mode.
+  - `clip-player`: drives one persistent skinned mesh with lazy-loaded external
+    clips. Clips ship with root motion baked into the hips (ginga travels 2.2 m
+    sideways), which would walk the opponent off her mark and into the camera,
+    so `lockRootMotion` zeroes the hips' horizontal track and keeps vertical
+    motion. Set it to `false` for clips that should travel.
+  - `opponent-ai`: the reactive opponent behind Spar mode. It closes distance
+    while sparring and is recentred when Spar, the session, or the menu ends.
   - `hit-detect` / `follow-camera`: contact detection and player guard points.
   - `billboard-to-camera`: keeps the wrist controls card facing the player.
+  - `hud-overlay` / `flat-panel`: draw the HUD above the world and unlit, so it
+    neither gets occluded nor picks up the environment's colour cast.
   - `desktop-fallback`: keyboard + guard-hand blocking without a headset.
   - `aframe-environment-component` for the setting, `aframe-extras` for animation.
+- **Fonts**: every A-Frame stock font is ASCII-only, which silently dropped
+  characters from 18 of the 58 playable move names. `assets/fonts/capoeira-sdf`
+  is a DejaVu Sans SDF atlas covering Latin-1, so `Aú`, `Benção` and
+  `Chapéu de couro` render properly.
 - **Assets**: opponent mesh and per-move animation clips under `assets/`.
 
 ---

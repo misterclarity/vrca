@@ -435,7 +435,7 @@
           keyEl.setAttribute('position', `${-CARD_W / 2 + 0.015} ${y} 0`);
           keyEl.setAttribute('text', {
             value: button, align: 'left', anchor: 'left', width: 0.14,
-            wrapCount: 15, color: '#ffd93d', font: 'mozillavr'
+            wrapCount: 15, color: '#ffd93d', font: CARD_FONT
           });
           controlsCardRows.appendChild(keyEl);
 
@@ -443,7 +443,7 @@
           actionEl.setAttribute('position', `-0.045 ${y} 0`);
           actionEl.setAttribute('text', {
             value: action, align: 'left', anchor: 'left', width: 0.155,
-            wrapCount: 16, color: '#e6eef7', font: 'mozillavr'
+            wrapCount: 16, color: '#e6eef7', font: CARD_FONT
           });
           controlsCardRows.appendChild(actionEl);
         });
@@ -562,18 +562,105 @@
       }
     };
 
-    // Keep prompts/card honest across headset entry and exit.
+    // Keep prompts/card honest across headset entry and exit, unlit the panels,
+    // and arm the audio unlock.
     (function wireHudToDevice () {
       const scene = document.querySelector('a-scene');
       if (!scene) return;
       const sync = () => hud.onDeviceChange();
       scene.addEventListener('enter-vr', sync);
       scene.addEventListener('exit-vr', sync);
-      if (scene.hasLoaded) hud.refreshPrompts();
-      else scene.addEventListener('loaded', () => hud.refreshPrompts());
+
+      const onReady = () => {
+        hud.refreshPrompts();
+        // Applied here rather than as 14 hand-written attributes.
+        scene.querySelectorAll('a-rounded').forEach((el) => el.setAttribute('flat-panel', ''));
+      };
+      if (scene.hasLoaded) onReady();
+      else scene.addEventListener('loaded', onReady);
+
+      // Browsers block the AudioContext until a user gesture, so the
+      // autoplaying background track never actually started. Entering VR
+      // requires a click, and on desktop any key or click will do.
+      let unlocked = false;
+      const unlockAudio = () => {
+        if (unlocked) return;
+        unlocked = true;
+        const ctx = THREE.AudioContext && THREE.AudioContext.getContext();
+        if (ctx && ctx.state === 'suspended') ctx.resume();
+        const soundEl = document.querySelector('[sound]');
+        const sound = soundEl && soundEl.components.sound;
+        if (sound && !sound.isPlaying) sound.playSound();
+        ['click', 'keydown', 'touchstart'].forEach((e) =>
+          window.removeEventListener(e, unlockAudio));
+      };
+      ['click', 'keydown', 'touchstart'].forEach((e) =>
+        window.addEventListener(e, unlockAudio, { passive: true }));
+      scene.addEventListener('enter-vr', unlockAudio);
     })();
 
     // --- A-FRAME COMPONENTS ---
+
+    // aframe-rounded builds its panels with MeshPhongMaterial, so every HUD
+    // background is lit by the scene: the panels pick up the environment's
+    // colour cast and shift brightness as the player turns. HUD chrome should
+    // be colour-stable (and unlit is cheaper), so swap in a basic material.
+    // aframe-rounded's own update() only assigns .color/.opacity/.transparent,
+    // which all exist on MeshBasicMaterial, so it keeps working.
+    AFRAME.registerComponent("flat-panel", {
+      dependencies: ['rounded'],
+      init: function () {
+        const rounded = this.el.components.rounded;
+        const mesh = rounded && rounded.rounded;
+        if (!mesh) return;
+        const lit = mesh.material;
+        mesh.material = new THREE.MeshBasicMaterial({
+          color: lit.color,
+          side: lit.side,
+          transparent: lit.transparent,
+          opacity: lit.opacity
+        });
+        lit.dispose();
+      }
+    });
+
+    // The HUD is head-locked at 1.5 m while the opponent stands at 2 m, but a
+    // lunge or a cartwheel swings her limbs well over half a metre forward —
+    // far enough to poke through the panels. A head-locked HUD should never be
+    // occluded by the world, so draw it as an overlay instead.
+    //
+    // Layering *within* the HUD still comes from document order: traverse() is
+    // depth-first in child order, so assigning an increasing renderOrder
+    // reproduces exactly the back-to-front stacking the markup already encodes
+    // (panel background, then its pills, then its text).
+    AFRAME.registerComponent("hud-overlay", {
+      schema: { order: { type: 'number', default: 100 }, interval: { type: 'number', default: 500 } },
+      init: function () { this.lastRun = -Infinity; },
+      tick: function (time) {
+        // Text meshes appear asynchronously as fonts resolve, and the controls
+        // card builds rows on demand, so re-apply periodically rather than once.
+        if (time - this.lastRun < this.data.interval) return;
+        this.lastRun = time;
+        let order = this.data.order;
+        this.el.object3D.traverse((o) => {
+          if (!o.isMesh && !o.isPoints) return;
+          o.renderOrder = order++;
+          const mats = Array.isArray(o.material) ? o.material : [o.material];
+          mats.forEach((m) => {
+            if (!m) return;
+            m.depthTest = false;
+            // renderOrder only sorts within a render list, and three always
+            // draws the opaque list first. A fully opaque panel (a selected
+            // difficulty pill, say) would therefore render before the dark
+            // background that is meant to sit behind it, and with depth
+            // testing off the background would paint straight over it.
+            // Forcing transparency puts the whole HUD in one ordered list;
+            // at opacity 1 it looks identical.
+            m.transparent = true;
+          });
+        });
+      }
+    });
 
     // Turns a wrist-mounted panel to face the player, so the controls card is
     // readable whatever angle the controller is held at.
@@ -622,7 +709,10 @@
     const combatFeedback = {
       hitCount: 0,
       blockCount: 0,
-      lastHitTime: 0,
+      // One timestamp per kind of contact. A single shared cooldown meant a
+      // block swallowed a hit that landed inside the same window (350 ms on
+      // Hard), so simultaneous exchanges only ever scored once.
+      lastAt: { hit: 0, block: 0, strike: 0 },
       screenFlash: null,
       flashTimeout: null,
       textTimeout: null,
@@ -639,8 +729,16 @@
       reset: function () {
         this.hitCount = 0;
         this.blockCount = 0;
-        this.lastHitTime = 0;
+        this.lastAt = { hit: 0, block: 0, strike: 0 };
         this.updateStatsPanel();
+      },
+
+      // True if this kind of contact is off cooldown, and claims the slot.
+      _claim: function (kind) {
+        const now = Date.now();
+        if (now - this.lastAt[kind] < this.hitCooldown) return false;
+        this.lastAt[kind] = now;
+        return true;
       },
 
       // Kept subtle on purpose: a 60%-opaque full-view flash reads as a fault,
@@ -692,9 +790,7 @@
       },
 
       registerHit: function (attackerPart, targetPart) {
-        const now = Date.now();
-        if (now - this.lastHitTime < this.hitCooldown) return; // Prevent spam
-        this.lastHitTime = now;
+        if (!this._claim('hit')) return; // Prevent spam
 
         this.hitCount++;
 
@@ -714,9 +810,7 @@
       },
 
       registerBlock: function (attackerPart, blockerPart) {
-        const now = Date.now();
-        if (now - this.lastHitTime < this.hitCooldown) return;
-        this.lastHitTime = now;
+        if (!this._claim('block')) return;
 
         this.blockCount++;
 
@@ -739,9 +833,7 @@
       },
 
       registerPlayerStrike: function (playerPart, targetPart) {
-        const now = Date.now();
-        if (now - this.lastHitTime < this.hitCooldown) return;
-        this.lastHitTime = now;
+        if (!this._claim('strike')) return;
 
         // Screen flash blue - you landed a hit!
         this.triggerScreenFlash('cyan', 150);
@@ -802,8 +894,10 @@
     // different node-index suffixes (mixamorigLeftFoot vs mixamorigLeftFoot63) work.
     AFRAME.registerComponent("hit-detect", {
       schema: {
-        radius: { type: 'number', default: 0.3 },    // metres (forgiving block reach)
-        cooldown: { type: 'number', default: 400 },   // ms per bone->target pair
+        radius: { type: 'number', default: 0.3 },       // metres, head/torso reach
+        handRadius: { type: 'number', default: 0.22 },  // tighter: a block is a smaller target
+        blockSpeed: { type: 'number', default: 0.15 },  // m/s a hand must be moving to block
+        cooldown: { type: 'number', default: 400 },     // ms per bone->target pair
       },
       init: function () {
         this.attackBones = [];   // { node, label }
@@ -839,7 +933,16 @@
           this.targets = ['playerHead', 'leftHand', 'rightHand']
             .map((id) => document.getElementById(id))
             .filter(Boolean)
-            .map((el) => ({ el, part: el.getAttribute('data-body-part') }));
+            .map((el) => ({
+              el,
+              part: el.getAttribute('data-body-part'),
+              // Previous world position + measured speed, so a block has to be
+              // an actual movement rather than a hand that happens to be parked
+              // in the path of the kick.
+              prev: new THREE.Vector3(),
+              speed: 0,
+              seeded: false
+            }));
         };
 
         if (this.el.getObject3D('mesh')) this._collectBones();
@@ -847,19 +950,33 @@
         this._gatherTargets();
       },
 
-      tick: function () {
+      tick: function (time, delta) {
         if (!this.attackBones.length) return;
         if (!this.targets.length) this._gatherTargets();
+
+        // Track guard-point speed every frame, including outside a session, so
+        // the first contact after starting isn't judged on a stale sample.
+        const dt = Math.max(delta, 1) / 1000;
+        for (const t of this.targets) {
+          t.el.object3D.getWorldPosition(this.worldB);
+          t.speed = t.seeded ? t.prev.distanceTo(this.worldB) / dt : 0;
+          t.prev.copy(this.worldB);
+          t.seeded = true;
+        }
+
         // Only score during an active session.
         if (!state.isGameStarted || state.showingSummary) return;
 
         const now = Date.now();
-        const r = this.data.radius;
         for (const b of this.attackBones) {
           b.node.getWorldPosition(this.worldA);
           for (const t of this.targets) {
+            const isHand = /Hand/i.test(t.part || '');
+            const r = isHand ? this.data.handRadius : this.data.radius;
             t.el.object3D.getWorldPosition(this.worldB);
             if (this.worldA.distanceTo(this.worldB) > r) continue;
+            // A motionless guard doesn't block — the limb just passes it.
+            if (isHand && t.speed < this.data.blockSpeed) continue;
             const key = b.label + '>' + t.part;
             if (now - (this.lastHit[key] || 0) < this.data.cooldown) continue;
             this.lastHit[key] = now;

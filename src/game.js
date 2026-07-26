@@ -58,6 +58,7 @@
         state.isRodaModeActive = false;
       }
       state.isSparMode = false;
+      recenterOpponent();
 
       // Calculate and save session results
       gameScore.endSession();
@@ -74,6 +75,7 @@
       state.showingSummary = false;
       state.currentDefensiveIndex = DEFENSIVE_START_INDEX;
       state.currentOffensiveIndex = OFFENSIVE_START_INDEX;
+      recenterOpponent();
 
       // Hide all game panels
       hud.stopOnboarding();
@@ -127,6 +129,13 @@
     }
 
     // --- MODEL UPDATE FUNCTIONS ---
+
+    // opponent-ai walks the opponent toward the player while sparring; this
+    // puts it back on its mark so a session never starts with it off-screen.
+    function recenterOpponent() {
+      const ai = entity.components['opponent-ai'];
+      if (ai) ai.recenter();
+    }
 
     function getRandomMove(moveType) {
       const moves = moveData[moveType];
@@ -192,6 +201,30 @@
     // Set initial model for display on the welcome screen
     updateModel(state.currentMoveType);
 
+    // clip-player already fetches assets/moves.json to build its clip table, so
+    // reuse the parsed result instead of requesting the same file again. Until
+    // it lands, moveData holds a one-entry-per-category fallback; refresh the
+    // displayed move once the real list is in so the welcome screen isn't stuck
+    // on it.
+    function adoptManifest(list) {
+      const off = [], def = [];
+      list.forEach((m) => {
+        if (m.type === "offensive") off.push({ slug: m.slug, title: m.title });
+        else if (m.type === "defensive") def.push({ slug: m.slug, title: m.title });
+      });
+      if (off.length) moveData.offensive = off;
+      if (def.length) moveData.defensive = def;
+      if (!state.isGameStarted) {
+        state.currentDefensiveIndex = DEFENSIVE_START_INDEX;
+        state.currentOffensiveIndex = OFFENSIVE_START_INDEX;
+        updateModel(state.currentMoveType);
+      }
+    }
+
+    entity.addEventListener('clip-manifest-ready', (e) => {
+      if (e.detail && e.detail.moves) adoptManifest(e.detail.moves);
+    }, { once: true });
+
     // --- RODA MODE FUNCTIONS ---
 
     function updateTimer() {
@@ -252,7 +285,7 @@
       pulse('left', 0.4, 60);
 
       if (state.isRodaModeActive) {
-        hud.coach('Roda mode — moves change on the timer. Block them!', '#ffd93d');
+        hud.coach('Roda mode — block the attacks!', '#ffd93d');
         startRodaSequence();
       } else {
         hud.coach('Training mode', '#00d4ff', 2000);
@@ -274,6 +307,7 @@
       }
 
       state.isSparMode = !state.isSparMode;
+      if (!state.isSparMode) recenterOpponent();
 
       if (modeText) {
         modeText.setAttribute('text', 'value', state.isSparMode ? 'SPAR MODE' : 'TRAINING');
@@ -282,7 +316,7 @@
       pulse('left', 0.5, 80);
       hud.coach(
         state.isSparMode
-          ? 'Spar mode — the opponent reads your guard. Block and dodge!'
+          ? 'Spar mode — it reads your guard!'
           : 'Training mode',
         state.isSparMode ? '#ff8f8f' : '#00d4ff',
         state.isSparMode ? COACH_MS : 2000
@@ -319,7 +353,7 @@
       // In Spar mode opponent-ai owns the facing and would overwrite this on the
       // next frame, so say why instead of looking like a dead button.
       if (state.isSparMode) {
-        hud.coach('The opponent turns to face you in Spar mode', '#ff8f8f', 2500);
+        hud.coach('It turns to face you in Spar', '#ff8f8f', 2500);
         return;
       }
       state.isFacingAway = !state.isFacingAway;
@@ -342,7 +376,7 @@
       // Roda and Spar drive the opponent themselves; stepping moves by hand
       // there would fight the mode instead of doing nothing visible.
       if (state.isRodaModeActive || state.isSparMode) {
-        hud.coach('Manual moves are off in Roda / Spar mode', '#ff8f8f', 2500);
+        hud.coach('Manual moves off in Roda/Spar', '#ff8f8f', 2500);
         return;
       }
       updateModel('offensive');
@@ -352,7 +386,7 @@
     function nextDefensive() {
       if (!state.isGameStarted || state.showingSummary) return;
       if (state.isRodaModeActive || state.isSparMode) {
-        hud.coach('Manual moves are off in Roda / Spar mode', '#ff8f8f', 2500);
+        hud.coach('Manual moves off in Roda/Spar', '#ff8f8f', 2500);
         return;
       }
       updateModel('defensive');
@@ -386,7 +420,7 @@
       endHoldPromptTimer = setTimeout(() => {
         endHoldPromptTimer = null;
         endHoldPrompted = true;
-        hud.coach('Keep holding [B] to end the session...', '#ff8f8f', 0);
+        hud.coach('Hold [B] to end the session', '#ff8f8f', 0);
       }, 250);
       endHoldTimer = setTimeout(() => {
         endHoldTimer = null;

@@ -21,6 +21,12 @@ AFRAME.registerComponent('clip-player', {
     idle: { type: 'string', default: 'ginga' },
     fade: { type: 'number', default: 0.2 },
     timeScale: { type: 'number', default: 1 },
+    // Clips are exported with root motion baked into the hips track — ginga
+    // travels 2.2 m sideways, rasteira 1.6 m forward. In a fixed trainer that
+    // walks the opponent off her mark and eventually into the camera, where she
+    // occludes the HUD. Anchor the hips horizontally and keep vertical motion
+    // so jumps and crouches still read. Set false for travelling clips.
+    lockRootMotion: { type: 'boolean', default: true },
   },
 
   init: function () {
@@ -72,9 +78,26 @@ AFRAME.registerComponent('clip-player', {
     const clip = gltf.animations[0];
     if (!clip) throw new Error('[clip-player] no animation in ' + entry.file);
     clip.name = slug;
+    if (this.data.lockRootMotion) this._lockRoot(clip);
     const action = this.mixer.clipAction(clip);
     this.actions[slug] = action;
     return action;
+  },
+
+  // Zero the hips' horizontal position, leaving Y alone. Anchoring to the
+  // clip's first frame instead would keep whatever offset it was authored at —
+  // and several clips start at one end of their travel, which would park the
+  // opponent a metre or more off her mark. Rotations are untouched, so the
+  // pose still reads; only the travel is removed.
+  _lockRoot: function (clip) {
+    for (const track of clip.tracks) {
+      if (!/Hips\.position$/.test(track.name)) continue;
+      const v = track.values;             // flat [x,y,z, x,y,z, ...]
+      for (let i = 0; i < v.length; i += 3) {
+        v[i] = 0;
+        v[i + 2] = 0;
+      }
+    }
   },
 
   playMove: async function (slug) {

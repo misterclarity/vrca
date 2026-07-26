@@ -14,6 +14,15 @@
     const DEFAULT_MODEL_ROTATION = 0;
     const FACING_AWAY_ROTATION = 180;
 
+    // Every A-Frame stock font is ASCII-only, so 18 of the 58 playable move
+    // names ("Aú", "Benção", "Chapéu de couro"...) silently lost characters.
+    // This atlas is DejaVu Sans over the full Latin-1 range, generated as a
+    // plain SDF: that's the field type all of A-Frame's stock fonts use, and
+    // its shader renders cleanly. An msdf build of the same glyphs picks up a
+    // dark halo through A-Frame's msdf shader, so keep "msdf" out of the
+    // filename too — A-Frame switches shader on that substring.
+    const CARD_FONT = 'assets/fonts/capoeira-sdf.json';
+
     // Hold the right B button this long to end the session (a tap advances the
     // defensive move instead, so ending can't happen by accident).
     const END_SESSION_HOLD_MS = 900;
@@ -105,25 +114,13 @@
     const combatFeedbackPanel = document.getElementById("combatFeedbackPanel");
 
     // Moves reference clip slugs from assets/moves.json (played via clip-player),
-    // grouped by curated category. Populated async before gameplay; a small
-    // fallback keeps things working if the manifest is slow/unavailable.
+    // grouped by curated category. A small fallback keeps things working until
+    // the manifest arrives; game.js fills this in from clip-player's
+    // 'clip-manifest-ready' event rather than fetching the file a second time.
     const moveData = {
       offensive: [{ slug: "martelo", title: "Martelo" }],
       defensive: [{ slug: "troca-de-pe", title: "Troca" }],
     };
-
-    const movesReady = fetch("assets/moves.json")
-      .then((r) => r.json())
-      .then((list) => {
-        const off = [], def = [];
-        list.forEach((m) => {
-          if (m.type === "offensive") off.push({ slug: m.slug, title: m.title });
-          else if (m.type === "defensive") def.push({ slug: m.slug, title: m.title });
-        });
-        if (off.length) moveData.offensive = off;
-        if (def.length) moveData.defensive = def;
-      })
-      .catch((e) => console.error("[moves] manifest load failed", e));
 
     // --- STATE ---
     let state = {
@@ -210,14 +207,14 @@
     // teaches one thing and then gets out of the way.
     const ONBOARDING = {
       vr: [
-        'Right hand: [A] next attack, [B] next defence',
-        'Left hand: [X] Roda, [Y] Spar — the opponent fights back in Spar',
-        'Raise your left hand and press the thumbstick for all controls',
+        'Right: [A] attack   [B] defence',
+        'Left: [X] Roda   [Y] Spar',
+        'Thumbstick press = controls card',
       ],
       desktop: [
-        'J = next attack, K = next defence',
-        'R = Roda, F = Spar — the opponent fights back in Spar',
-        'Press H any time for all controls',
+        'J = attack   K = defence',
+        'R = Roda   F = Spar',
+        'Press H for all controls',
       ],
     };
 
