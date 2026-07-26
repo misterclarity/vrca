@@ -268,9 +268,10 @@
       </a-gltf-model>
     </a-entity>
 
-    <!-- Floor (visual only; physics removed) -->
-    <a-plane position="0 0 0" rotation="-90 0 0" width="20" height="20" color="#7BC8A4"
-      opacity="0.3"></a-plane>
+    <!-- No floor plane here: the environment preset already draws ground at
+         y=0, and a second coplanar surface z-fights with it (visible flicker
+         as the camera moves). Nothing reads this entity — collision uses bone
+         distance checks, not physics. -->
 
     <!-- Player guard points read by hit-detect (no physics bodies) -->
     <a-entity id="playerHead" follow-camera data-body-part="head"
