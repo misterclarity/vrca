@@ -513,6 +513,122 @@
     if (leftHand) attachControllerEvents(leftHand);
     if (rightHand) attachControllerEvents(rightHand);
 
+    // --- BARE-HAND INPUT (WebXR hand tracking) ---
+    //
+    // Capoeira is whole-body movement, so training without holding anything is
+    // the better fit — but hands report no buttons, only a pinch. The eight
+    // button actions collapse onto two hands x (tap, hold), plus a two-handed
+    // pinch for the reference card:
+    //
+    //   Pinch right   confirm / next attack      Hold right  cycle mode (or difficulty)
+    //   Pinch left    next defence               Hold left   end session
+    //   Pinch both    controls card
+    //
+    // Actions fire on release rather than press, so a two-handed pinch can be
+    // recognised before either hand's single action commits.
+
+    function cycleMode() {
+      if (!state.isGameStarted || state.showingSummary) return;
+      // Training -> Roda -> Spar -> Training. toggleSparMode already stands
+      // Roda down when it takes over, so Roda -> Spar is a single call.
+      if (state.isSparMode || state.isRodaModeActive) toggleSparMode();
+      else toggleRodaMode();
+    }
+
+    const PINCH_HOLD_MS = 900;
+    const pinches = {
+      left: { active: false, fired: false, prompted: false, holdTimer: null, promptTimer: null },
+      right: { active: false, fired: false, prompted: false, holdTimer: null, promptTimer: null }
+    };
+    let pinchCombo = false;
+
+    function clearPinchTimers(hand) {
+      const p = pinches[hand];
+      if (p.holdTimer) { clearTimeout(p.holdTimer); p.holdTimer = null; }
+      if (p.promptTimer) { clearTimeout(p.promptTimer); p.promptTimer = null; }
+    }
+
+    function pinchTap(hand) {
+      if (hand === 'right') {
+        if (state.isGameStarted && !state.showingSummary) nextOffensive();
+        else handleConfirm();
+      } else if (state.isGameStarted && !state.showingSummary) {
+        nextDefensive();
+      }
+    }
+
+    function pinchHold(hand) {
+      if (hand === 'right') {
+        if (state.isGameStarted && !state.showingSummary) cycleMode();
+        else cycleDifficulty();
+        return;
+      }
+      if (state.isGameStarted && !state.showingSummary) {
+        hud.clearCoach();
+        endSession();
+      }
+    }
+
+    function onPinchStarted(hand) {
+      const self = pinches[hand];
+      const other = pinches[hand === 'left' ? 'right' : 'left'];
+      self.active = true;
+      self.fired = false;
+      self.prompted = false;
+
+      // Both hands pinched: show the reference and disarm the single-hand
+      // actions, so summoning it never also throws a move.
+      if (other.active) {
+        pinchCombo = true;
+        self.fired = other.fired = true;
+        clearPinchTimers('left');
+        clearPinchTimers('right');
+        hud.toggleControls();
+        return;
+      }
+
+      if (hand === 'left' && state.isGameStarted && !state.showingSummary) {
+        self.promptTimer = setTimeout(() => {
+          self.promptTimer = null;
+          self.prompted = true;
+          hud.coach('Keep pinching to end the session...', '#ff8f8f', 0);
+        }, 250);
+      }
+      self.holdTimer = setTimeout(() => {
+        self.holdTimer = null;
+        self.fired = true;
+        self.prompted = false;
+        clearPinchTimers(hand);
+        pinchHold(hand);
+      }, PINCH_HOLD_MS);
+    }
+
+    function onPinchEnded(hand) {
+      const self = pinches[hand];
+      const other = pinches[hand === 'left' ? 'right' : 'left'];
+      const wasCombo = pinchCombo;
+      const alreadyFired = self.fired;
+
+      self.active = false;
+      clearPinchTimers(hand);
+      if (!other.active) pinchCombo = false;
+      // Only take the prompt down if we actually put it up — otherwise a
+      // release would wipe whatever hint the coach line was already showing.
+      if (self.prompted) { self.prompted = false; hud.clearCoach(); }
+
+      if (wasCombo || alreadyFired) return;
+      pinchTap(hand);
+    }
+
+    if (leftHand) {
+      leftHand.addEventListener('pinchstarted', () => onPinchStarted('left'));
+      leftHand.addEventListener('pinchended', () => onPinchEnded('left'));
+    }
+    if (rightHand) {
+      rightHand.addEventListener('pinchstarted', () => onPinchStarted('right'));
+      rightHand.addEventListener('pinchended', () => onPinchEnded('right'));
+    }
+
     // Cleanup on page unload to prevent memory leaks
     window.addEventListener('beforeunload', () => {
       cancelEndHold();

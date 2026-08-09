@@ -382,6 +382,13 @@
         return !!(scene && scene.is('vr-mode'));
       },
 
+      // Which control scheme the player is actually driving right now.
+      // Bare hands report no buttons, so they get their own labels.
+      inputMode: function () {
+        if (state.usingHands) return 'hands';
+        return this.isVR() ? 'vr' : 'desktop';
+      },
+
       // Which control set applies right now.
       context: function () {
         return (state.isGameStarted && !state.showingSummary) ? 'session' : 'menu';
@@ -415,7 +422,7 @@
       // the actual bindings, and Quest vs keyboard labels are picked per device.
       buildControls: function () {
         if (!controlsCardRows) return;
-        const mode = this.isVR() ? 'vr' : 'desktop';
+        const mode = this.inputMode();
         const ctx = this.context();
         const key = ctx + ':' + mode;
         if (this.builtFor === key) return;
@@ -469,7 +476,7 @@
       // camera, where full size would swallow the screen — shrink it there.
       applyCardScale: function () {
         if (!controlsCard) return;
-        const s = this.isVR() ? 1 : 0.5;
+        const s = this.isVR() ? 1 : 0.5;   // hands are in VR, so full size
         controlsCard.setAttribute('scale', `${s} ${s} ${s}`);
       },
 
@@ -509,7 +516,7 @@
 
       nextOnboarding: function () {
         this.onboardingTimeout = null;
-        const lines = ONBOARDING[this.isVR() ? 'vr' : 'desktop'];
+        const lines = ONBOARDING[this.inputMode()];
         if (state.onboardingStep >= lines.length) {
           gameData.seenOnboarding = true;
           gameData.save();
@@ -532,19 +539,39 @@
 
       // Menu button prompts have to match the device actually in use.
       refreshPrompts: function () {
-        const vr = this.isVR();
+        const mode = this.inputMode();
+        const pick = (hands, vr, desktop) =>
+          mode === 'hands' ? hands : mode === 'vr' ? vr : desktop;
         if (welcomeStartHint) {
           welcomeStartHint.setAttribute('text', 'value',
-            vr ? 'Press [A] to Start' : 'Press SPACE to Start');
+            pick('Pinch to Start', 'Press [A] to Start', 'Press SPACE to Start'));
         }
         if (welcomeDiffHint) {
           welcomeDiffHint.setAttribute('text', 'value',
-            vr ? 'Thumbstick left / right to choose' : 'Press 1 / 2 / 3 to choose');
+            pick('Hold a right pinch to change',
+                 'Thumbstick or [X] to choose',
+                 'Press 1 / 2 / 3 to choose'));
         }
         if (summaryContinueHint) {
           summaryContinueHint.setAttribute('text', 'value',
-            vr ? '[A] Continue' : 'SPACE Continue');
+            pick('Pinch to Continue', '[A] Continue', 'SPACE Continue'));
         }
+      },
+
+      // Picking a controller up or putting it down changes every label, and
+      // hand tracking can start at any moment, so this is polled rather than
+      // driven by an event. First switch to hands also surfaces the card, since
+      // the pinch gestures are not guessable.
+      lastMode: null,
+      syncMode: function () {
+        const mode = this.inputMode();
+        if (mode === this.lastMode) return;
+        const first = this.lastMode === null;
+        this.lastMode = mode;
+        this.builtFor = null;
+        this.refreshPrompts();
+        if (state.isHelpVisible) this.buildControls();
+        if (!first && mode === 'hands') this.showControls();
       },
 
       // Device swap invalidates every label we've rendered.
@@ -570,6 +597,13 @@
       const sync = () => hud.onDeviceChange();
       scene.addEventListener('enter-vr', sync);
       scene.addEventListener('exit-vr', sync);
+
+      // Opt-in perf overlay for checking headset frame rate (A-Frame 1.8's
+      // stats component is stats-gl, which reports GPU timings too). Off by
+      // default — add ?stats to the URL.
+      if (new URLSearchParams(location.search).has('stats')) {
+        scene.setAttribute('stats', '');
+      }
 
       const onReady = () => {
         hud.refreshPrompts();
@@ -641,6 +675,7 @@
         // card builds rows on demand, so re-apply periodically rather than once.
         if (time - this.lastRun < this.data.interval) return;
         this.lastRun = time;
+        hud.syncMode();
         let order = this.data.order;
         this.el.object3D.traverse((o) => {
           if (!o.isMesh && !o.isPoints) return;
@@ -659,6 +694,36 @@
             m.transparent = true;
           });
         });
+      }
+    });
+
+    // A guard point tracks whichever input the player is actually using.
+    //
+    // With a controller the hand entity's own transform is the hand position.
+    // With bare hands it is not: hand-tracking-controls resets its entity to
+    // the origin every frame and publishes joints separately, so the wrist
+    // joint is read instead. Everything downstream — hit-detect, the wrist
+    // controls card, the desktop guard spheres — reads these entities and so
+    // works the same under all three input modes.
+    AFRAME.registerComponent("guard-point", {
+      schema: { hand: { default: 'left', oneOf: ['left', 'right'] } },
+      init: function () {
+        this.source = document.getElementById(this.data.hand + 'Hand');
+        this.world = new THREE.Vector3();
+      },
+      tick: function () {
+        if (!this.source) return;
+        const tracking = this.source.components['hand-tracking-controls'];
+        if (tracking && tracking.hasPoses && tracking.wristObject3D) {
+          // wristObject3D is parented to the scene root, so its local transform
+          // is already world space — the same space the controllers report in.
+          tracking.wristObject3D.getWorldPosition(this.world);
+          state.usingHands = true;
+        } else {
+          this.source.object3D.getWorldPosition(this.world);
+          if (this.data.hand === 'left') state.usingHands = false;
+        }
+        this.el.object3D.position.copy(this.world);
       }
     });
 
@@ -991,7 +1056,7 @@
         };
 
         this._gatherTargets = () => {
-          this.targets = ['playerHead', 'leftHand', 'rightHand']
+          this.targets = ['playerHead', 'leftGuard', 'rightGuard']
             .map((id) => document.getElementById(id))
             .filter(Boolean)
             .map((el) => ({

@@ -26,8 +26,10 @@ AFRAME.registerComponent('desktop-fallback', {
     this.offR = new THREE.Vector3(0.2, -0.3, -0.4);
 
     // Show the guard spheres on desktop so the player can see their block.
-    [this.left, this.right].forEach((h) => {
-      const s = h && h.querySelector('a-sphere');
+    // They live on the guard points now, which follow these hand entities.
+    ['leftGuard', 'rightGuard'].forEach((id) => {
+      const g = document.getElementById(id);
+      const s = g && g.querySelector('a-sphere');
       if (s) s.setAttribute('visible', true);
     });
 

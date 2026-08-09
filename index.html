@@ -50,7 +50,10 @@
        separate text/panel draw calls, all of which would otherwise be
        submitted twice per frame on a headset. A-Frame ignores it where the
        OVR_multiview2 extension is missing; drop the attribute to disable. -->
+  <!-- hand-tracking has to be requested explicitly; setting optionalFeatures
+       replaces A-Frame's default list, so bounded-floor is repeated here. -->
   <a-scene vr-mode-ui="enabled: true" keyboard-shortcuts="enterVR: false"
+    webxr="optionalFeatures: bounded-floor, hand-tracking"
     renderer="multiviewStereo: true" desktop-fallback roda-clock>
     <a-assets>
       <!-- Textured opponent mesh (loaded once); animations are lazy external clips. -->
@@ -308,14 +311,31 @@
       geometry="primitive: sphere; radius: 0.15"
       material="color: blue; opacity: 0.3; transparent: true" visible="false"></a-entity>
 
-    <a-entity id="leftHand" meta-touch-controls="hand: left" data-body-part="leftHand">
+    <!-- Input sources. Both components sit on the same entity deliberately —
+         that is A-Frame's documented way to support controllers and bare hands
+         in one app, and it switches automatically as the player picks a
+         controller up or puts it down. These entities carry no guard data:
+         hand-tracking-controls pins its entity's transform to the origin every
+         frame and reports joints separately, so anything that needs a real
+         hand position reads the guard points below instead. -->
+    <a-entity id="leftHand" meta-touch-controls="hand: left"
+      hand-tracking-controls="hand: left"></a-entity>
+    <a-entity id="rightHand" meta-touch-controls="hand: right"
+      hand-tracking-controls="hand: right"></a-entity>
+
+    <!-- Guard points: what actually blocks. Each follows whichever input is
+         live — the controller entity, or the tracked wrist when the player is
+         using bare hands — so blocking works identically either way. -->
+    <a-entity id="leftGuard" guard-point="hand: left" data-body-part="leftHand">
       <a-sphere radius="0.08" material="color: green; opacity: 0.3; transparent: true" visible="false"></a-sphere>
 
       <!-- ==================== CONTROLS CARD ====================
            Wrist-mounted, not head-locked: raise your left hand to read it and
            it never covers the opponent or the HUD. Rows are generated from the
            CONTROLS table in config.js so the labels can never go stale, and
-           they switch between Quest and keyboard names automatically. -->
+           they switch between Quest, hand-tracking and keyboard names
+           automatically. Parented to the guard rather than the controller so
+           it stays on the wrist in hand-tracking mode too. -->
       <a-entity id="controlsCard" position="0.02 0.15 0.02" visible="false" billboard-to-camera>
         <a-rounded id="controlsCardBg" position="-0.15 -0.1 0" width="0.3" height="0.2" radius="0.012"
           color="#0d1b2a" opacity="0.9"></a-rounded>
@@ -326,7 +346,7 @@
           text="value: ; align: center; width: 0.26; wrapCount: 30; color: #5d7a91; font: assets/fonts/capoeira-sdf.json; anchor: center"></a-entity>
       </a-entity>
     </a-entity>
-    <a-entity id="rightHand" meta-touch-controls="hand: right" data-body-part="rightHand">
+    <a-entity id="rightGuard" guard-point="hand: right" data-body-part="rightHand">
       <a-sphere radius="0.08" material="color: green; opacity: 0.3; transparent: true" visible="false"></a-sphere>
     </a-entity>
 

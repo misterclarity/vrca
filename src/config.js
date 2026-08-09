@@ -39,6 +39,11 @@
     // that actually owns the button.
     const CONTROLS = {
       menu: {
+        hands: [
+          ['Pinch R', 'Start session'],
+          ['Hold R', 'Cycle difficulty'],
+          ['Pinch both', 'This card'],
+        ],
         vr: [
           ['A', 'Start session'],
           ['Stick < >', 'Difficulty'],
@@ -52,6 +57,15 @@
         ],
       },
       session: {
+        // Bare hands have no buttons, so the whole scheme collapses onto two
+        // pinches x (tap, hold), plus a two-handed pinch for the reference.
+        hands: [
+          ['Pinch R', 'Next attack'],
+          ['Pinch L', 'Next defence'],
+          ['Hold R', 'Cycle mode'],
+          ['Hold L', 'End session'],
+          ['Pinch both', 'This card'],
+        ],
         vr: [
           ['A', 'Next attack'],
           ['B', 'Next defence'],
@@ -72,7 +86,11 @@
         ],
       },
       // Rendered as the card's footer so the dismiss gesture is always stated.
-      dismiss: { vr: 'thumbstick press to close', desktop: 'H to close' },
+      dismiss: {
+        hands: 'pinch both hands to close',
+        vr: 'thumbstick press to close',
+        desktop: 'H to close'
+      },
     };
 
     // Welcome screen elements
@@ -112,6 +130,8 @@
     const difficultyText = document.getElementById("difficultyText");
     const statusIcon = document.getElementById("statusIcon");
     const combatFeedbackPanel = document.getElementById("combatFeedbackPanel");
+    const leftGuard = document.getElementById("leftGuard");
+    const rightGuard = document.getElementById("rightGuard");
 
     // Moves reference clip slugs from assets/moves.json (played via clip-player),
     // grouped by curated category. A small fallback keeps things working until
@@ -133,6 +153,7 @@
       timeLeft: DEFAULT_RODA_TIME,
       isFacingAway: false,
       isHelpVisible: false,
+      usingHands: false,   // bare-hand tracking live, rather than controllers
       currentMoveType: 'defensive',
       onboardingStep: 0,   // index into ONBOARDING while the first session runs
       colliders: [], // Track dynamic colliders
@@ -214,6 +235,11 @@
         'J = attack   K = defence',
         'R = Roda   F = Spar',
         'Press H for all controls',
+      ],
+      hands: [
+        'Pinch right = attack, left = defence',
+        'Hold a right pinch to cycle mode',
+        'Pinch both hands for all controls',
       ],
     };
 

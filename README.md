@@ -12,6 +12,7 @@ An immersive Virtual Reality application designed to help users learn and practi
     - **Slow Motion**: Slow down animations to study technique details.
     - **Rotation**: Rotate models or change your perspective to see moves from different angles.
 - **Cross-Hand Controls**: Full integration with Oculus/Meta Quest touch controllers.
+- **Bare-Hand Training**: Quest hand tracking is supported as a first-class input — block with your actual hands, no controllers needed.
 
 ## Controls
 
@@ -43,6 +44,24 @@ so a session can't be dropped by a stray press.
 | **Choose difficulty** | **Thumbstick left / right**, or **X** (left) to cycle |
 | **Preview the model from behind** | **Trigger** (either hand) |
 
+### With bare hands (no controllers)
+
+Put the controllers down and Quest hand tracking takes over — a better fit for
+whole-body movement. Hands report no buttons, only a pinch, so the scheme
+collapses onto two hands x (tap, hold):
+
+| Action | Gesture |
+| :--- | :--- |
+| **Confirm / next attack** | **Pinch right** |
+| **Next defence** | **Pinch left** |
+| **Cycle mode** (Training / Roda / Spar) | **Hold a right pinch** |
+| **End session** | **Hold a left pinch** |
+| **Controls card** | **Pinch both hands** |
+
+Blocking works the same either way: the guard points follow the tracked wrist
+when you're using hands and the controller when you aren't, and the app swaps
+its on-screen prompts to match whichever you pick up.
+
 ### On a flatscreen (no headset)
 
 `W A S D` + mouse to move and look. `Space` start · `J` next attack ·
@@ -53,11 +72,12 @@ so a session can't be dropped by a stray press.
 
 The interface is built to stay out of the way while you train:
 
-- **Wrist controls card** — press a thumbstick and the full control reference
-  appears on your left hand, angled to face you. It doesn't hide the rest of the
-  HUD and it times out on its own. Its rows are generated from a single control
-  table, so they can't drift from the actual bindings, and they switch between
-  Quest and keyboard labels automatically.
+- **Wrist controls card** — press a thumbstick (or pinch both hands) and the
+  full control reference appears on your left hand, angled to face you. It
+  doesn't hide the rest of the HUD and it times out on its own. Its rows are
+  generated from a single control table, so they can't drift from the actual
+  bindings, and they relabel themselves for controllers, bare hands or the
+  keyboard depending on what you're holding.
 - **Coach line** — one short hint at a time, low in the view, which dismisses
   itself instead of parking permanently on screen.
 - **First-run onboarding** — three one-line lessons on your first session only,
@@ -141,6 +161,10 @@ them:
     drifts against the animation and banks missed ticks while the headset sleeps,
     then burns through several rounds at once on wake; a frame-driven clock just
     pauses and resumes.
+  - `guard-point`: the entities that actually block. Each follows whichever
+    input is live, because `hand-tracking-controls` pins its own entity to the
+    origin every frame and publishes joints separately — so the wrist joint is
+    read in hand-tracking mode and the controller transform otherwise.
   - `desktop-fallback`: keyboard + guard-hand blocking without a headset.
   - `aframe-environment-component` for the setting, `aframe-extras` for animation.
 - **Fonts**: every A-Frame stock font is ASCII-only, which silently dropped
@@ -151,6 +175,12 @@ them:
   (`maxCachedClips`) and evicts the rest from the mixer. All 58 would otherwise
   stay parsed in memory for the whole session; evicted clips reload on demand,
   and the idle and on-screen clips are never candidates.
+- **Input**: `meta-touch-controls` and `hand-tracking-controls` sit on the same
+  entities, which is A-Frame's supported way to accept controllers and bare
+  hands in one app; hand tracking is requested via
+  `webxr="optionalFeatures: bounded-floor, hand-tracking"`.
+- **Profiling**: append `?stats` to the URL for A-Frame's stats overlay
+  (stats-gl as of 1.8, so it reports GPU timings). Off otherwise.
 - **Assets**: opponent mesh and per-move animation clips under `assets/`.
 
 ---
